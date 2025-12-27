@@ -27,7 +27,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Evaluation } from "@/lib/types/recruitment"
-import { initialEvaluations } from "@/lib/data/recruitment"
+import { getEvaluations } from "@/lib/actions/recruitment"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ErrorState } from "@/components/ui/error-state"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -35,8 +35,7 @@ import { RowActionsMenu } from "@/components/actions/RowActionsMenu"
 import { getAvatarForUser } from "@/lib/utils/avatars"
 
 async function fetchEvaluations() {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return initialEvaluations
+  return await getEvaluations()
 }
 
 const recommendationConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline"; icon: React.ElementType }> = {
@@ -101,7 +100,7 @@ export default function RecruitmentEvaluationsPage() {
       </div>
 
       <Card className="border border-border rounded-[14px]">
-        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
+        <div className="flex h-16 items-center justify-between border-b border-border px-5 py-2 bg-white">
           <h2 className="text-base font-semibold text-foreground">Candidate Evaluations</h2>
           <div className="flex items-center gap-3">
             <div className="relative w-64">

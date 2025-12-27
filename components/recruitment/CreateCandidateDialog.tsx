@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { createCandidate } from "@/lib/actions/recruitment"
+import { Loader2 } from "lucide-react"
 
 interface CreateCandidateDialogProps {
   open: boolean
@@ -16,6 +19,8 @@ interface CreateCandidateDialogProps {
 }
 
 export function CreateCandidateDialog({ open, onOpenChange }: CreateCandidateDialogProps) {
+  const queryClient = useQueryClient()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     fullName: "", email: "", phone: "", positionApplied: "",
     resume: "", coverLetter: "", linkedIn: "", experience: "", education: "", skills: "", notes: "",
@@ -23,13 +28,28 @@ export function CreateCandidateDialog({ open, onOpenChange }: CreateCandidateDia
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
     try {
-      console.log("Create candidate:", formData)
-      toast.success("Candidate added successfully", { description: `Candidate **${formData.fullName}** has been added`, duration: 3000 })
+      await createCandidate({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        linkedIn: formData.linkedIn || undefined,
+        resume: formData.resume || undefined,
+        notes: formData.notes || undefined,
+        source: 'website',
+      })
+
+      await queryClient.invalidateQueries({ queryKey: ["candidates"] })
+
+      toast.success("Candidate added successfully", { description: `Candidate ${formData.fullName} has been added`, duration: 3000 })
       onOpenChange(false)
       setFormData({ fullName: "", email: "", phone: "", positionApplied: "", resume: "", coverLetter: "", linkedIn: "", experience: "", education: "", skills: "", notes: "" })
     } catch (error) {
+      console.error("Error creating candidate:", error)
       toast.error("Failed to add candidate", { description: error instanceof Error ? error.message : "An error occurred", duration: 5000 })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -72,11 +92,14 @@ export function CreateCandidateDialog({ open, onOpenChange }: CreateCandidateDia
           </div>
           <div className="flex items-center justify-end gap-3.5 pt-4 px-6 pb-6 flex-shrink-0 border-t">
             <Button type="button" onClick={() => onOpenChange(false)} variant="outline" size="md" className="w-[128px]">Cancel</Button>
-            <Button type="submit" size="md" className="w-[128px]">Add Candidate</Button>
+            <Button type="submit" size="md" className="w-[128px]" disabled={isSubmitting}>
+              {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Adding...</> : "Add Candidate"}
+            </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   )
 }
+
 

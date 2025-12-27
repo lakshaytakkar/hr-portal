@@ -102,7 +102,7 @@ export default function RndResearchDocsPage() {
       </div>
 
       <Card className="border border-border rounded-[14px]">
-        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
+        <div className="flex h-16 items-center justify-between border-b border-border px-5 py-2 bg-white">
           <h2 className="text-base font-semibold text-foreground">Research Documents</h2>
           <div className="flex items-center gap-3">
             <div className="relative w-64">

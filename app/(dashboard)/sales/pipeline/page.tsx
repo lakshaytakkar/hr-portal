@@ -97,26 +97,19 @@ export default function SalesPipelinePage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground leading-[1.35]">
-            {isMyView ? "My Pipeline" : "Pipeline"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isMyView
-              ? "Track your sales pipeline and monitor deal progression"
-              : "Track team sales pipeline, monitor deal stages, and analyze performance"}
-          </p>
-        </div>
-        <Button onClick={() => setIsCreateDealOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Deal
-        </Button>
+      <div>
+        <h1 className="text-xl font-semibold text-foreground leading-[1.35]">
+          {isMyView ? "My Pipeline" : "Pipeline"}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isMyView
+            ? "Track your sales pipeline and monitor deal progression"
+            : "Track team sales pipeline, monitor deal stages, and analyze performance"}
+        </p>
       </div>
 
       <Card className="border border-border rounded-[14px]">
-        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Sales Pipeline</h2>
+        <div className="flex h-16 items-center justify-between border-b border-border px-5 py-2 bg-white">
           <div className="flex items-center gap-3">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -132,6 +125,10 @@ export default function SalesPipelinePage() {
               Filter
             </Button>
           </div>
+          <Button onClick={() => setIsCreateDealOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Deal
+          </Button>
         </div>
 
         <div className="overflow-x-auto">

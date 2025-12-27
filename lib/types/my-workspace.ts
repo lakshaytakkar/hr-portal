@@ -12,6 +12,14 @@ export interface WorkspaceUser {
   avatar?: string
 }
 
+export interface TrainingVideo {
+  id: string
+  title: string
+  url: string
+  duration?: number // in minutes
+  thumbnailUrl?: string
+}
+
 export interface Training {
   id: string
   title: string
@@ -20,7 +28,8 @@ export interface Training {
   status: TrainingStatus
   progress?: number
   duration?: number
-  url?: string
+  url?: string // Keep for backward compatibility (single video)
+  videos?: TrainingVideo[] // Array of videos for this training
   completedAt?: string
   createdAt: string
   updatedAt: string

@@ -85,7 +85,7 @@ export interface JobPosting {
   title: string
   department: string
   location: string
-  employmentType: "full-time" | "part-time" | "contract"
+  employmentType: "full-time" | "part-time" | "contract" | "internship"
   status: "draft" | "published" | "closed"
   postedDate?: string
   closingDate?: string

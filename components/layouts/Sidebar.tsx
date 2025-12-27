@@ -97,10 +97,33 @@ export function Sidebar({ selectedRoles, selectedDepartments, isSuperAdminView, 
     return pathname.startsWith(href)
   }
 
+  // Determine dashboard href based on selected departments
+  // Priority: HR > Sales > Finance > Marketing > Analytics > Main Dashboard
+  const getDashboardHref = (): string => {
+    // Check in priority order
+    if (selectedDepartments.includes("hr")) {
+      return "/hr/dashboard"
+    }
+    if (selectedDepartments.includes("sales")) {
+      return "/sales/dashboard"
+    }
+    if (selectedDepartments.includes("finance")) {
+      return "/finance/dashboard"
+    }
+    if (selectedDepartments.includes("marketing")) {
+      return "/marketing/dashboard"
+    }
+    if (selectedDepartments.includes("analytics")) {
+      return "/analytics/dashboard"
+    }
+    // Default to main dashboard
+    return "/"
+  }
+
   // Base menu items - always visible
   const baseMenuItems: MenuItem[] = [
     // Dashboard
-    { label: "Dashboard", href: "/", icon: Home, section: "dashboard", description: "View your overview and quick stats" },
+    { label: "Dashboard", href: getDashboardHref(), icon: Home, section: "dashboard", description: "View your overview and quick stats" },
     
     // My Workspace - Work
     { label: "Projects", href: "/projects", icon: Briefcase, section: "my-workspace", subSection: "work", description: "Manage and track your projects" },

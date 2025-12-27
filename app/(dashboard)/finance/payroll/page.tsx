@@ -198,25 +198,24 @@ function StatCard({
   icon: React.ElementType
 }) {
   return (
-    <Card className="border border-border rounded-[14px] flex-1">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="bg-primary/10 rounded-full w-9 h-9 flex items-center justify-center shrink-0">
-            <Icon className="h-4 w-4 text-primary" />
-          </div>
-          <p className="text-sm font-medium text-foreground flex-1">{title}</p>
-          <button className="w-4 h-4 flex items-center justify-center shrink-0">
-            <MoreVertical className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
-        <div className="space-y-1">
-          <p className="text-2xl font-semibold text-foreground leading-[1.3]">{value}</p>
-          <div className="flex items-center gap-2 text-sm">
+    <Card className="border border-border rounded-2xl p-[18px] bg-white">
+      <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+        {title}
+      </p>
+      <div className="flex items-center justify-between mt-0.5">
+        <div className="flex flex-col">
+          <p className="text-xl font-semibold text-foreground leading-[1.35]">
+            {value}
+          </p>
+          <div className="flex items-center gap-2 text-xs mt-0.5">
             <span className="text-[#10b981] font-medium">{change}</span>
             <span className="text-muted-foreground font-medium">{changeLabel}</span>
           </div>
         </div>
-      </CardContent>
+        <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
+      </div>
     </Card>
   )
 }
@@ -249,22 +248,12 @@ export default function FinancePayrollPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div>
         <h1 className="text-xl font-semibold text-foreground leading-[1.35]">Payroll</h1>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="default" className="gap-2">
-            <FileDown className="h-4 w-4" />
-            Export
-          </Button>
-          <Button variant="default" size="default" className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Payroll
-          </Button>
-        </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Payroll Cost"
           value="$15.248,00"
@@ -297,8 +286,7 @@ export default function FinancePayrollPage() {
 
       {/* Table */}
       <Card className="border border-border rounded-[14px]">
-        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Recent Payroll</h2>
+        <div className="flex h-16 items-center justify-between border-b border-border px-5 py-2 bg-white">
           <div className="flex items-center gap-3">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -316,6 +304,16 @@ export default function FinancePayrollPage() {
             <Button variant="outline" size="sm" className="gap-2 h-[38px]">
               <ArrowUpDown className="h-5 w-5" />
               Sort by
+            </Button>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="default" className="gap-2">
+              <FileDown className="h-4 w-4" />
+              Export
+            </Button>
+            <Button variant="default" size="default" className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Payroll
             </Button>
           </div>
         </div>

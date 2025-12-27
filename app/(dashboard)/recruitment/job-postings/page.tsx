@@ -29,7 +29,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { JobPosting } from "@/lib/types/recruitment"
-import { initialJobPostings } from "@/lib/data/recruitment"
+import { getJobPostings } from "@/lib/actions/recruitment"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ErrorState } from "@/components/ui/error-state"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -38,8 +38,7 @@ import { CreateJobPostingDialog } from "@/components/recruitment/CreateJobPostin
 import { getAvatarForUser } from "@/lib/utils/avatars"
 
 async function fetchJobPostings() {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return initialJobPostings
+  return await getJobPostings()
 }
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
@@ -95,26 +94,19 @@ export default function JobPostingsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground leading-[1.35]">
-            {isMyView ? "My Job Postings" : "Job Postings"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isMyView
-              ? "View job postings and manage recruitment listings"
-              : "Manage all job postings, create new listings, and track application status"}
-          </p>
-        </div>
-        <Button onClick={() => setIsCreateJobPostingOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Job Posting
-        </Button>
+      <div>
+        <h1 className="text-xl font-semibold text-foreground leading-[1.35]">
+          {isMyView ? "My Job Postings" : "Job Postings"}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isMyView
+            ? "View job postings and manage recruitment listings"
+            : "Manage all job postings, create new listings, and track application status"}
+        </p>
       </div>
 
       <Card className="border border-border rounded-[14px]">
-        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Job Postings</h2>
+        <div className="flex h-16 items-center justify-between border-b border-border px-5 py-2 bg-white">
           <div className="flex items-center gap-3">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -130,6 +122,10 @@ export default function JobPostingsPage() {
               Filter
             </Button>
           </div>
+          <Button onClick={() => setIsCreateJobPostingOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Job Posting
+          </Button>
         </div>
 
         <div className="overflow-x-auto">

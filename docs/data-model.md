@@ -266,3 +266,114 @@ These will be replaced with Supabase queries once schema is implemented.
 - Text fields use `TEXT` type (no length limits initially, can optimize later)
 - Consider adding full-text search indexes for searchable fields (name, description, notes)
 
+## Foreign Key Resolution Patterns
+
+### Problem
+
+When creating records that reference other tables via foreign keys, forms often send user-friendly identifiers (names, codes, emails) instead of UUIDs. Passing these directly to database operations causes foreign key constraint violations.
+
+### Solution
+
+Use the foreign key resolution utilities in `lib/utils/foreign-keys.ts` to convert user-friendly identifiers to UUIDs before database operations.
+
+### Usage Examples
+
+#### Resolving Department IDs
+
+```typescript
+import { resolveDepartmentId, normalizeOptional } from '@/lib/utils/foreign-keys'
+
+// In a create/update action:
+const departmentId = await resolveDepartmentId(input.departmentId, false) // false = optional field
+// Returns: UUID string or null if not found and not required
+
+// For required fields:
+const requiredDeptId = await resolveDepartmentId(input.departmentId, true) // true = required
+// Throws error if not found
+```
+
+#### Resolving Profile/Manager IDs
+
+```typescript
+import { resolveProfileId } from '@/lib/utils/foreign-keys'
+
+// Resolve manager ID from email, name, or UUID:
+const managerId = await resolveProfileId(input.managerId, false)
+// Supports: UUID, email, or full name lookup
+```
+
+#### Normalizing Optional Fields
+
+```typescript
+import { normalizeOptional } from '@/lib/utils/foreign-keys'
+
+// Convert empty strings to undefined for optional fields:
+const phone = normalizeOptional(input.phone) // "" -> undefined
+const position = normalizeOptional(input.position) // null -> undefined
+```
+
+#### Complete Example
+
+```typescript
+export async function createEmployee(input: CreateEmployeeInput) {
+  try {
+    // Normalize optional fields
+    const phone = normalizeOptional(input.phone)
+    const position = normalizeOptional(input.position)
+
+    // Resolve foreign keys
+    const departmentId = await resolveDepartmentId(input.departmentId, false)
+    const managerId = await resolveProfileId(input.managerId, false)
+
+    // Validate required fields
+    if (!input.fullName || !input.email) {
+      throw new Error('Full name and email are required')
+    }
+
+    // Create record with resolved UUIDs
+    const [newProfile] = await db
+      .insert(profiles)
+      .values({
+        email: input.email,
+        fullName: input.fullName,
+        phone,
+        departmentId, // Now a UUID or null
+        position,
+        managerId, // Now a UUID or null
+        // ...
+      })
+      .returning()
+
+    // ...
+  } catch (error) {
+    logDatabaseError(error, 'createEmployee')
+    const friendlyMessage = getUserFriendlyErrorMessage(error)
+    throw new Error(friendlyMessage)
+  }
+}
+```
+
+### Error Handling
+
+Always wrap database operations in try-catch and use error utilities:
+
+```typescript
+import { getUserFriendlyErrorMessage, logDatabaseError } from '@/lib/utils/errors'
+
+try {
+  // Database operation
+} catch (error) {
+  logDatabaseError(error, 'context') // Logs for debugging
+  const friendlyMessage = getUserFriendlyErrorMessage(error) // User-friendly message
+  throw new Error(friendlyMessage)
+}
+```
+
+### Best Practices
+
+1. **Always resolve foreign keys** - Never pass string names/codes directly to foreign key fields
+2. **Normalize optional fields** - Convert empty strings to `undefined` for optional fields
+3. **Validate required fields** - Check required fields before database operations
+4. **Use error handling** - Wrap all database operations in try-catch with user-friendly messages
+5. **Use transactions** - For multi-table operations, use database transactions for atomicity
+

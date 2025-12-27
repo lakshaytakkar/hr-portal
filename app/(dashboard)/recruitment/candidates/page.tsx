@@ -28,7 +28,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Candidate } from "@/lib/types/candidate"
-import { initialCandidates } from "@/lib/data/candidates"
+import { getCandidates } from "@/lib/actions/recruitment"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ErrorState } from "@/components/ui/error-state"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -36,8 +36,7 @@ import { RowActionsMenu } from "@/components/actions/RowActionsMenu"
 import { CreateCandidateDialog } from "@/components/recruitment/CreateCandidateDialog"
 
 async function fetchCandidates() {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return initialCandidates.candidates
+  return await getCandidates()
 }
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
@@ -109,62 +108,61 @@ export default function CandidatesPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground leading-[1.35]">
-            {isMyView ? "My Candidates" : "Candidates"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isMyView
-              ? "Manage your candidates and track recruitment pipeline"
-              : "Manage all team candidates, track recruitment pipeline, and monitor hiring progress"}
-          </p>
-        </div>
-        <Button onClick={() => setIsCreateCandidateOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Candidate
-        </Button>
+      <div>
+        <h1 className="text-xl font-semibold text-foreground leading-[1.35]">
+          {isMyView ? "My Candidates" : "Candidates"}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isMyView
+            ? "Manage your candidates and track recruitment pipeline"
+            : "Manage all team candidates, track recruitment pipeline, and monitor hiring progress"}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <Card className="border border-border rounded-[14px] flex-1">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="bg-primary/10 rounded-full w-9 h-9 flex items-center justify-center shrink-0">
-                <UserPlus className="h-4 w-4 text-primary" />
-              </div>
-              <p className="text-sm font-medium text-foreground flex-1">New</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border border-border rounded-2xl p-[18px] bg-white">
+          <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+            New
+          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xl font-semibold text-foreground leading-[1.35]">
+              {newCount}
+            </p>
+            <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+              <UserPlus className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-2xl font-semibold text-foreground leading-[1.3]">{newCount}</p>
-          </CardContent>
+          </div>
         </Card>
-        <Card className="border border-border rounded-[14px] flex-1">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="bg-primary/10 rounded-full w-9 h-9 flex items-center justify-center shrink-0">
-                <FileText className="h-4 w-4 text-primary" />
-              </div>
-              <p className="text-sm font-medium text-foreground flex-1">In Interview</p>
+        <Card className="border border-border rounded-2xl p-[18px] bg-white">
+          <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+            In Interview
+          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xl font-semibold text-foreground leading-[1.35]">
+              {interviewCount}
+            </p>
+            <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-2xl font-semibold text-foreground leading-[1.3]">{interviewCount}</p>
-          </CardContent>
+          </div>
         </Card>
-        <Card className="border border-border rounded-[14px] flex-1">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="bg-primary/10 rounded-full w-9 h-9 flex items-center justify-center shrink-0">
-                <UserPlus className="h-4 w-4 text-primary" />
-              </div>
-              <p className="text-sm font-medium text-foreground flex-1">Hired</p>
+        <Card className="border border-border rounded-2xl p-[18px] bg-white">
+          <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+            Hired
+          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xl font-semibold text-foreground leading-[1.35]">
+              {hiredCount}
+            </p>
+            <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+              <UserPlus className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-2xl font-semibold text-foreground leading-[1.3]">{hiredCount}</p>
-          </CardContent>
+          </div>
         </Card>
       </div>
 
       <Card className="border border-border rounded-[14px]">
-        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Candidates List</h2>
+        <div className="flex items-center justify-between border-b border-border px-5 pt-0 pb-2 bg-white">
           <div className="flex items-center gap-3">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -180,31 +178,35 @@ export default function CandidatesPage() {
               Filter
             </Button>
           </div>
+          <Button onClick={() => setIsCreateCandidateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Candidate
+          </Button>
         </div>
 
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50 border-b border-border">
-                <TableHead className="w-[200px] px-3">
+              <TableRow className="bg-muted/50 hover:bg-muted/50 border-b-0">
+                <TableHead className="w-[200px] px-3 py-0">
                   <span className="text-sm font-medium text-muted-foreground">Name</span>
                 </TableHead>
-                <TableHead className="px-3">
+                <TableHead className="px-3 py-0">
                   <span className="text-sm font-medium text-muted-foreground">Position</span>
                 </TableHead>
-                <TableHead className="px-3">
+                <TableHead className="px-3 py-0">
                   <span className="text-sm font-medium text-muted-foreground">Contact</span>
                 </TableHead>
-                <TableHead className="px-3">
+                <TableHead className="px-3 py-0">
                   <span className="text-sm font-medium text-muted-foreground">Source</span>
                 </TableHead>
-                <TableHead className="px-3">
+                <TableHead className="px-3 py-0">
                   <span className="text-sm font-medium text-muted-foreground">Status</span>
                 </TableHead>
-                <TableHead className="w-[144px] px-3">
+                <TableHead className="w-[144px] px-3 py-0">
                   <span className="text-sm font-medium text-muted-foreground">Applied</span>
                 </TableHead>
-                <TableHead className="w-[44px] px-3"></TableHead>
+                <TableHead className="w-[44px] px-3 py-0"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

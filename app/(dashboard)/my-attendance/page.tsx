@@ -297,22 +297,13 @@ export default function MyAttendancePage() {
 
   return (
     <div>
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5">
           <h1 className="text-xl font-semibold text-foreground leading-[1.35]">My Attendance</h1>
-          <div className="flex items-center gap-3">
-            <Button variant="secondary" size="sm" className="h-10 border border-border">
-              Download
-            </Button>
-            <Button variant="primary" size="sm" className="h-10" onClick={() => setIsRequestLeaveOpen(true)}>
-              Request for Leave
-            </Button>
-          </div>
         </div>
 
         <div className="rounded-[14px] border border-border bg-white overflow-hidden">
           {/* Table Header */}
           <div className="flex h-16 items-center justify-between border-b border-border px-5 py-2 bg-white">
-            <h2 className="text-base font-semibold text-foreground tracking-[0.32px]">Attendance Table</h2>
             <div className="flex items-center gap-3">
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -338,6 +329,14 @@ export default function MyAttendancePage() {
               >
                 <ArrowUpDown className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium text-muted-foreground">Sort by</span>
+              </Button>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="secondary" size="sm" className="h-10 border border-border">
+                Download
+              </Button>
+              <Button variant="primary" size="sm" className="h-10" onClick={() => setIsRequestLeaveOpen(true)}>
+                Request for Leave
               </Button>
             </div>
           </div>

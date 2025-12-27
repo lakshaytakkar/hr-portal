@@ -1,21 +1,20 @@
 "use client"
 
 import * as React from "react"
-import { Calendar, ChevronDown } from "lucide-react"
+import { format } from "date-fns"
+import { Calendar as CalendarIcon, ChevronDown } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import type { DateRange } from "react-day-picker"
 
-export interface DateRange {
-  from: Date | null
-  to: Date | null
-}
+export type { DateRange }
 
 export interface DateRangePickerProps {
-  value?: DateRange
-  onChange?: (range: DateRange) => void
+  value?: { from: Date | null; to: Date | null }
+  onChange?: (range: { from: Date | null; to: Date | null }) => void
   mode?: 'range' | 'single'
   presets?: boolean
   placeholder?: string
@@ -103,71 +102,10 @@ export function DateRangePicker({
   className,
   required = false,
 }: DateRangePickerProps) {
-  const formatDateForInput = (date: Date): string => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
   const [open, setOpen] = React.useState(false)
-  const [fromDate, setFromDate] = React.useState<string>(
-    value?.from ? formatDateForInput(value.from) : ''
-  )
-  const [toDate, setToDate] = React.useState<string>(
-    value?.to ? formatDateForInput(value.to) : ''
-  )
-
-  React.useEffect(() => {
-    if (value) {
-      setFromDate(value.from ? formatDateForInput(value.from) : '')
-      setToDate(value.to ? formatDateForInput(value.to) : '')
-    }
-  }, [value])
-
-  const parseDateFromInput = (dateString: string): Date | null => {
-    if (!dateString) return null
-    const date = new Date(dateString)
-    date.setHours(0, 0, 0, 0)
-    return isNaN(date.getTime()) ? null : date
-  }
-
-  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateStr = e.target.value
-    setFromDate(dateStr)
-    const from = parseDateFromInput(dateStr)
-    const to = mode === 'single' ? from : parseDateFromInput(toDate)
-    
-    if (onChange) {
-      onChange({ from, to })
-    }
-  }
-
-  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateStr = e.target.value
-    setToDate(dateStr)
-    const to = parseDateFromInput(dateStr)
-    const from = parseDateFromInput(fromDate)
-    
-    // Validate that 'to' is not before 'from'
-    if (from && to && to < from) {
-      // If to is before from, set to to be the same as from
-      setToDate(fromDate)
-      if (onChange) {
-        onChange({ from, to: from })
-      }
-      return
-    }
-    
-    if (onChange) {
-      onChange({ from, to })
-    }
-  }
-
+  
   const handlePresetClick = (preset: typeof PRESETS[0]) => {
     const range = preset.getValue()
-    setFromDate(range.from ? formatDateForInput(range.from) : '')
-    setToDate(range.to ? formatDateForInput(range.to) : '')
     if (onChange) {
       onChange(range)
     }
@@ -175,8 +113,6 @@ export function DateRangePicker({
   }
 
   const handleClear = () => {
-    setFromDate('')
-    setToDate('')
     if (onChange) {
       onChange({ from: null, to: null })
     }
@@ -189,14 +125,14 @@ export function DateRangePicker({
 
     if (mode === 'single') {
       if (value.from) {
-        return value.from.toLocaleDateString()
+        return format(value.from, "dd / MM / yyyy")
       }
       return placeholder
     }
 
     if (value.from && value.to) {
-      const fromStr = value.from.toLocaleDateString()
-      const toStr = value.to.toLocaleDateString()
+      const fromStr = format(value.from, "dd / MM / yyyy")
+      const toStr = format(value.to, "dd / MM / yyyy")
       if (fromStr === toStr) {
         return fromStr
       }
@@ -204,13 +140,20 @@ export function DateRangePicker({
     }
 
     if (value.from) {
-      return `${value.from.toLocaleDateString()} - ...`
+      return `${format(value.from, "dd / MM / yyyy")} - ...`
     }
 
     return placeholder
   }
 
   const hasValue = value && (value.from || value.to)
+  
+  const calendarValue = value
+    ? {
+        from: value.from || undefined,
+        to: value.to || undefined,
+      }
+    : undefined
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -218,21 +161,21 @@ export function DateRangePicker({
         <Button
           variant="outline"
           className={cn(
-            "w-full justify-start text-left font-normal",
-            !hasValue && "text-muted-foreground",
+            "w-full justify-start text-left font-normal h-[52px] rounded-xl border border-[#dfe1e7] text-base tracking-[0.32px]",
+            !hasValue && "text-[#818898]",
             className
           )}
           type="button"
         >
-          <Calendar className="mr-2 h-4 w-4" />
+          <CalendarIcon className="mr-2 h-4 w-4" />
           {formatDisplayValue()}
           <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-4" align="start">
-        <div className="flex flex-col gap-4">
+      <PopoverContent className="w-auto p-0" align="start">
+        <div className="flex flex-col">
           {presets && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 p-4 border-b">
               <Label className="text-xs font-semibold text-muted-foreground">Presets</Label>
               <div className="grid grid-cols-2 gap-2">
                 {PRESETS.map((preset) => (
@@ -250,46 +193,43 @@ export function DateRangePicker({
             </div>
           )}
 
-          <div className={cn("flex flex-col gap-4", presets && "border-t pt-4")}>
+          <div className={cn(presets && "border-t")}>
             {mode === 'single' ? (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="date-single">Date {required && '*'}</Label>
-                <Input
-                  id="date-single"
-                  type="date"
-                  value={fromDate}
-                  onChange={handleFromDateChange}
-                  required={required}
-                />
-              </div>
+              <Calendar
+                mode="single"
+                selected={value?.from || undefined}
+                onSelect={(date) => {
+                  if (onChange) {
+                    onChange({ from: date || null, to: date || null })
+                  }
+                  setOpen(false)
+                }}
+                initialFocus
+              />
             ) : (
-              <>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="date-from">From {required && '*'}</Label>
-                  <Input
-                    id="date-from"
-                    type="date"
-                    value={fromDate}
-                    onChange={handleFromDateChange}
-                    max={toDate || undefined}
-                    required={required}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="date-to">To {required && '*'}</Label>
-                  <Input
-                    id="date-to"
-                    type="date"
-                    value={toDate}
-                    onChange={handleToDateChange}
-                    min={fromDate || undefined}
-                    required={required}
-                  />
-                </div>
-              </>
+              <Calendar
+                mode="range"
+                selected={calendarValue}
+                onSelect={(range) => {
+                  if (onChange && range) {
+                    onChange({
+                      from: range.from || null,
+                      to: range.to || null,
+                    })
+                  }
+                  // Close when both dates are selected
+                  if (range?.from && range?.to) {
+                    setOpen(false)
+                  }
+                }}
+                numberOfMonths={2}
+                initialFocus
+              />
             )}
+          </div>
 
-            {hasValue && (
+          {hasValue && (
+            <div className="p-4 border-t">
               <Button
                 variant="ghost"
                 size="sm"
@@ -298,8 +238,8 @@ export function DateRangePicker({
               >
                 Clear
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

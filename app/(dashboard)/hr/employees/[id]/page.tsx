@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Mail, Phone, Briefcase, Building2, Calendar, User, Users, Edit } from "lucide-react"
 import { Employee, EmployeeStatus } from "@/lib/types/hr"
-import { initialEmployees } from "@/lib/data/hr"
+import { getEmployeeById, getEmployees } from "@/lib/actions/hr"
 import { ErrorState } from "@/components/ui/error-state"
 import { DetailPageHeader, DetailQuickTile, DetailTabs } from "@/components/details"
 import { useDetailNavigation } from "@/lib/hooks/useDetailNavigation"
@@ -25,15 +25,13 @@ const statusConfig: Record<EmployeeStatus, { label: string; variant: "default" |
 }
 
 async function fetchEmployee(id: string) {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  const employee = initialEmployees.find((e) => e.id === id)
+  const employee = await getEmployeeById(id)
   if (!employee) throw new Error("Employee not found")
   return employee
 }
 
 async function fetchAllEmployees() {
-  await new Promise((resolve) => setTimeout(resolve, 100))
-  return initialEmployees
+  return await getEmployees()
 }
 
 export default function EmployeeDetailPage() {

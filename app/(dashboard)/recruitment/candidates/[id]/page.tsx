@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Mail, Phone, Linkedin, FileText, Briefcase, GraduationCap, Award, User } from "lucide-react"
 import { Candidate, CandidateStatus } from "@/lib/types/candidate"
-import { initialCandidates } from "@/lib/data/candidates"
+import { getCandidateById, getCandidates } from "@/lib/actions/recruitment"
 import { ErrorState } from "@/components/ui/error-state"
 import { DetailDialog } from "@/components/details"
 import { useDetailNavigation } from "@/lib/hooks/useDetailNavigation"
@@ -27,15 +27,13 @@ const statusConfig: Record<CandidateStatus, { label: string; variant: "default" 
 }
 
 async function fetchCandidate(id: string) {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  const candidate = initialCandidates.candidates.find((c) => c.id === id)
+  const candidate = await getCandidateById(id)
   if (!candidate) throw new Error("Candidate not found")
   return candidate
 }
 
 async function fetchAllCandidates() {
-  await new Promise((resolve) => setTimeout(resolve, 100))
-  return initialCandidates.candidates
+  return await getCandidates()
 }
 
 export default function CandidateDetailPage() {

@@ -28,16 +28,18 @@ function StatCard({
   icon: React.ElementType
 }) {
   return (
-    <Card className="border border-border rounded-[14px] flex-1">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="bg-primary/10 rounded-full w-9 h-9 flex items-center justify-center shrink-0">
-            <Icon className="h-4 w-4 text-primary" />
-          </div>
-          <p className="text-sm font-medium text-foreground flex-1">{title}</p>
+    <Card className="border border-border rounded-2xl p-[18px] bg-white">
+      <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+        {title}
+      </p>
+      <div className="flex items-center justify-between mt-0.5">
+        <p className="text-xl font-semibold text-foreground leading-[1.35]">
+          {value}
+        </p>
+        <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+          <Icon className="h-5 w-5 text-primary" />
         </div>
-        <p className="text-2xl font-semibold text-foreground leading-[1.3]">{value}</p>
-      </CardContent>
+      </div>
     </Card>
   )
 }
@@ -52,7 +54,7 @@ export default function CeoRecruitmentSummaryPage() {
     return (
       <div className="space-y-5">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="border border-border rounded-[14px]">
               <CardContent className="p-4">
@@ -83,7 +85,7 @@ export default function CeoRecruitmentSummaryPage() {
         <p className="text-sm text-muted-foreground mt-1">Recruitment pipeline summary</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Candidates"
           value={(summary?.totalCandidates || 0).toString()}

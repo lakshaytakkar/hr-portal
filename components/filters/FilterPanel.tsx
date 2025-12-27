@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { DateRangePicker, type DateRange } from "./DateRangePicker"
+import { DateRangePicker } from "./DateRangePicker"
 import { cn } from "@/lib/utils"
 import type { FilterDefinition, FilterValue } from "@/lib/utils/filters"
 
@@ -93,7 +93,7 @@ export function FilterPanel({
     }
 
     if (filter.type === 'daterange' && typeof value === 'object' && 'from' in value) {
-      const range = value as DateRange
+      const range = value as { from?: Date | null; to?: Date | null }
       if (range.from && range.to) {
         const fromStr = range.from.toLocaleDateString()
         const toStr = range.to.toLocaleDateString()
@@ -195,9 +195,10 @@ export function FilterPanel({
         )
 
       case 'daterange':
+        const dateValue = value as { from?: Date | null; to?: Date | null } | undefined
         return (
           <DateRangePicker
-            value={value as DateRange || { from: null, to: null }}
+            value={{ from: dateValue?.from ?? null, to: dateValue?.to ?? null }}
             onChange={(range) => handleFilterChange(filter.id, range)}
             required={filter.required}
             className="w-full"

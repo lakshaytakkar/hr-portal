@@ -248,6 +248,23 @@ export default function ProjectsPage() {
     })
   }
 
+  // Filter projects by search query (use empty array as fallback for hook consistency)
+  const filteredProjects = useMemo(() => {
+    if (!projects) return []
+    return projects.filter((project) =>
+      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [projects, searchQuery])
+
+  // Organize projects into columns (must be called before early returns)
+  const columnsWithProjects = useMemo(() => {
+    return columns.map((column) => ({
+      ...column,
+      items: filteredProjects.filter((project) => statusToColumn[project.status] === column.id),
+    }))
+  }, [filteredProjects])
+
   if (isLoading) {
     return (
       <div className="space-y-5">
@@ -338,20 +355,6 @@ export default function ProjectsPage() {
       />
     )
   }
-
-  // Filter projects by search query
-  const filteredProjects = projects?.filter((project) =>
-    project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    project.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || []
-
-  // Organize projects into columns
-  const columnsWithProjects = useMemo(() => {
-    return columns.map((column) => ({
-      ...column,
-      items: filteredProjects.filter((project) => statusToColumn[project.status] === column.id),
-    }))
-  }, [filteredProjects])
 
   // Handle project move between columns
   const handleProjectMove = (projectId: string, newColumnId: string, oldColumnId: string) => {

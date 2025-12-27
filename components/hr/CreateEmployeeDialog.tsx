@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/sonner"
 import {
   Dialog,
@@ -25,6 +26,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { createEmployee, getDepartments, getManagers } from "@/lib/actions/hr"
+import { Loader2 } from "lucide-react"
 
 interface CreateEmployeeDialogProps {
   open: boolean
@@ -32,38 +35,67 @@ interface CreateEmployeeDialogProps {
 }
 
 export function CreateEmployeeDialog({ open, onOpenChange }: CreateEmployeeDialogProps) {
+  const queryClient = useQueryClient()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    department: "",
-    role: "",
+    departmentId: "",
+    position: "",
     startDate: "",
     phone: "",
     address: "",
     emergencyContact: "",
-    manager: "",
+    managerId: "",
     salary: "",
+  })
+
+  // Fetch departments and managers
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: getDepartments,
+    enabled: open, // Only fetch when dialog is open
+  })
+
+  const { data: managers = [] } = useQuery({
+    queryKey: ["managers"],
+    queryFn: getManagers,
+    enabled: open, // Only fetch when dialog is open
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
     try {
-      console.log("Create employee:", formData)
+      await createEmployee({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        departmentId: formData.departmentId || undefined,
+        position: formData.position || undefined,
+        managerId: formData.managerId || undefined,
+        hireDate: formData.startDate,
+        employmentType: 'full-time',
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
+      })
+
+      await queryClient.invalidateQueries({ queryKey: ["employees"] })
+
       toast.success("Employee created successfully", {
-        description: `Employee **${formData.fullName || "Employee"}** has been added`,
+        description: `Employee ${formData.fullName} has been added`,
         duration: 3000,
       })
       onOpenChange(false)
       setFormData({
         fullName: "",
         email: "",
-        department: "",
-        role: "",
+        departmentId: "",
+        position: "",
         startDate: "",
         phone: "",
         address: "",
         emergencyContact: "",
-        manager: "",
+        managerId: "",
         salary: "",
       })
     } catch (error) {
@@ -72,6 +104,8 @@ export function CreateEmployeeDialog({ open, onOpenChange }: CreateEmployeeDialo
         description: error instanceof Error ? error.message : "An error occurred. Please try again.",
         duration: 5000,
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -79,13 +113,13 @@ export function CreateEmployeeDialog({ open, onOpenChange }: CreateEmployeeDialo
     setFormData({
       fullName: "",
       email: "",
-      department: "",
-      role: "",
+      departmentId: "",
+      position: "",
       startDate: "",
       phone: "",
       address: "",
       emergencyContact: "",
-      manager: "",
+      managerId: "",
       salary: "",
     })
     onOpenChange(false)
@@ -131,34 +165,30 @@ export function CreateEmployeeDialog({ open, onOpenChange }: CreateEmployeeDialo
               <Label className="text-sm font-medium text-[#666d80] leading-[1.5] tracking-[0.28px]">
                 Department <span className="text-[#df1c41]">*</span>
               </Label>
-              <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
+              <Select value={formData.departmentId} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>
                 <SelectTrigger className="h-[52px] rounded-xl border-[#dfe1e7] text-base tracking-[0.32px]">
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="engineering">Engineering</SelectItem>
-                  <SelectItem value="design">Design</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="hr">HR</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label className="text-sm font-medium text-[#666d80] leading-[1.5] tracking-[0.28px]">
-                Role <span className="text-[#df1c41]">*</span>
+                Position
               </Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                <SelectTrigger className="h-[52px] rounded-xl border-[#dfe1e7] text-base tracking-[0.32px]">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="executive">Executive</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="employee">Employee</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                value={formData.position}
+                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                placeholder="Enter job position"
+                className="h-[52px] rounded-xl border-[#dfe1e7] text-base tracking-[0.32px] placeholder:text-[#818898]"
+              />
             </div>
 
             <div className="space-y-2">
@@ -209,14 +239,17 @@ export function CreateEmployeeDialog({ open, onOpenChange }: CreateEmployeeDialo
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-[#666d80] leading-[1.5] tracking-[0.28px]">Manager</Label>
-                    <Select value={formData.manager} onValueChange={(value) => setFormData({ ...formData, manager: value })}>
+                    <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
                       <SelectTrigger className="h-[52px] rounded-xl border-[#dfe1e7] text-base tracking-[0.32px]">
                         <SelectValue placeholder="Select manager" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">None</SelectItem>
-                        <SelectItem value="manager-1">John Doe</SelectItem>
-                        <SelectItem value="manager-2">Jane Smith</SelectItem>
+                        {managers.map((manager) => (
+                          <SelectItem key={manager.id} value={manager.id}>
+                            {manager.fullName || manager.email}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -229,7 +262,9 @@ export function CreateEmployeeDialog({ open, onOpenChange }: CreateEmployeeDialo
             <Button type="button" onClick={handleCancel} variant="outline" size="md" className="w-[128px]">
               Cancel
             </Button>
-            <Button type="submit" size="md" className="w-[128px]">Add Employee</Button>
+            <Button type="submit" size="md" className="w-[128px]" disabled={isSubmitting}>
+              {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Adding...</> : "Add Employee"}
+            </Button>
           </div>
         </form>
       </DialogContent>

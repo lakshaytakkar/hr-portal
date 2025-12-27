@@ -111,21 +111,15 @@ export default function SalesDealsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground leading-[1.35]">
-            {isMyView ? "My Deals" : "Deals"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isMyView
-              ? "Manage your deals and track sales opportunities"
-              : "Manage all team deals, assign deals, and track sales performance"}
-          </p>
-        </div>
-        <Button onClick={() => setIsCreateDealOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Deal
-        </Button>
+      <div>
+        <h1 className="text-xl font-semibold text-foreground leading-[1.35]">
+          {isMyView ? "My Deals" : "Deals"}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isMyView
+            ? "Manage your deals and track sales opportunities"
+            : "Manage all team deals, assign deals, and track sales performance"}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -171,8 +165,7 @@ export default function SalesDealsPage() {
       </div>
 
       <Card className="border border-border rounded-[14px]">
-        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Deals List</h2>
+        <div className="flex h-16 items-center justify-between border-b border-border px-5 py-2 bg-white">
           <div className="flex items-center gap-3">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -188,6 +181,10 @@ export default function SalesDealsPage() {
               Filter
             </Button>
           </div>
+          <Button onClick={() => setIsCreateDealOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Deal
+          </Button>
         </div>
 
         <div className="overflow-x-auto">

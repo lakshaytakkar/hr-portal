@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { createJobPosting } from "@/lib/actions/recruitment"
+import { Loader2 } from "lucide-react"
 
 interface CreateJobPostingDialogProps {
   open: boolean
@@ -16,6 +19,8 @@ interface CreateJobPostingDialogProps {
 }
 
 export function CreateJobPostingDialog({ open, onOpenChange }: CreateJobPostingDialogProps) {
+  const queryClient = useQueryClient()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     jobTitle: "", department: "", employmentType: "", location: "",
     description: "", requirements: "", salaryRange: "", applicationDeadline: "", responsibilities: "",
@@ -23,13 +28,31 @@ export function CreateJobPostingDialog({ open, onOpenChange }: CreateJobPostingD
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
     try {
-      console.log("Create job posting:", formData)
-      toast.success("Job posting created successfully", { description: `Job posting **${formData.jobTitle}** has been created`, duration: 3000 })
+      await createJobPosting({
+        title: formData.jobTitle,
+        description: formData.description || undefined,
+        requirements: formData.requirements || undefined,
+        responsibilities: formData.responsibilities || undefined,
+        location: formData.location || undefined,
+        employmentType: formData.employmentType ? (formData.employmentType as 'full-time' | 'part-time' | 'contract') : undefined,
+        salaryMin: formData.salaryRange ? parseInt(formData.salaryRange.split('-')[0]?.replace(/\D/g, '') || '0') : undefined,
+        salaryMax: formData.salaryRange ? parseInt(formData.salaryRange.split('-')[1]?.replace(/\D/g, '') || '0') : undefined,
+        closingDate: formData.applicationDeadline || undefined,
+        status: 'draft',
+      })
+
+      await queryClient.invalidateQueries({ queryKey: ["job-postings"] })
+
+      toast.success("Job posting created successfully", { description: `Job posting ${formData.jobTitle} has been created`, duration: 3000 })
       onOpenChange(false)
       setFormData({ jobTitle: "", department: "", employmentType: "", location: "", description: "", requirements: "", salaryRange: "", applicationDeadline: "", responsibilities: "" })
     } catch (error) {
+      console.error("Error creating job posting:", error)
       toast.error("Failed to create job posting", { description: error instanceof Error ? error.message : "An error occurred", duration: 5000 })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -55,11 +78,14 @@ export function CreateJobPostingDialog({ open, onOpenChange }: CreateJobPostingD
           </div>
           <div className="flex items-center justify-end gap-3.5 pt-4 px-6 pb-6 flex-shrink-0 border-t">
             <Button type="button" onClick={() => onOpenChange(false)} variant="outline" size="md" className="w-[128px]">Cancel</Button>
-            <Button type="submit" size="md" className="w-[128px]">Create Posting</Button>
+            <Button type="submit" size="md" className="w-[128px]" disabled={isSubmitting}>
+              {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : "Create Posting"}
+            </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   )
 }
+
 

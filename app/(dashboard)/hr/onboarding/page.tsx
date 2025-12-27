@@ -28,7 +28,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Onboarding } from "@/lib/types/hr"
-import { initialOnboardings } from "@/lib/data/hr"
+import { getOnboardings } from "@/lib/actions/hr"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ErrorState } from "@/components/ui/error-state"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -36,8 +36,7 @@ import { RowActionsMenu } from "@/components/actions/RowActionsMenu"
 import { getAvatarForUser } from "@/lib/utils/avatars"
 
 async function fetchOnboardings() {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return initialOnboardings
+  return await getOnboardings()
 }
 
 const statusConfig: Record<string, { label: string; borderColor: string; textColor: string; dotColor: string }> = {
@@ -77,18 +76,18 @@ function StatCard({
   icon: React.ElementType
 }) {
   return (
-    <Card className="border border-border rounded-[14px] flex-1">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="bg-primary/10 rounded-full w-9 h-9 flex items-center justify-center shrink-0">
-            <Icon className="h-4 w-4 text-primary" />
-          </div>
-          <p className="text-sm font-medium text-foreground flex-1">{title}</p>
+    <Card className="border border-border rounded-2xl p-[18px] bg-white">
+      <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+        {title}
+      </p>
+      <div className="flex items-center justify-between mt-0.5">
+        <p className="text-xl font-semibold text-foreground leading-[1.35]">
+          {value}
+        </p>
+        <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+          <Icon className="h-5 w-5 text-primary" />
         </div>
-        <div className="space-y-1">
-          <p className="text-2xl font-semibold text-foreground leading-[1.3]">{value}</p>
-        </div>
-      </CardContent>
+      </div>
     </Card>
   )
 }
@@ -167,14 +166,14 @@ export default function HROnboardingPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard title="In Progress" value={inProgressCount.toString()} icon={Clock} />
         <StatCard title="Pending" value={pendingCount.toString()} icon={UserCheck} />
         <StatCard title="Completed" value={completedCount.toString()} icon={CheckCircle2} />
       </div>
 
       <Card className="border border-border rounded-[14px]">
-        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
+        <div className="flex h-16 items-center justify-between border-b border-border px-5 py-2 bg-white">
           <h2 className="text-base font-semibold text-foreground">Onboarding Processes</h2>
           <div className="flex items-center gap-3">
             <div className="relative w-64">

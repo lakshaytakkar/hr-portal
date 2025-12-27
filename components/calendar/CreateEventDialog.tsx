@@ -252,3 +252,4 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
   )
 }
 
+
