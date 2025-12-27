@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "@/components/ui/sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -54,9 +55,25 @@ export function DevTaskForm({ task, onSubmit, onCancel }: DevTaskFormProps) {
         docLinks: docLinks.length > 0 ? docLinks : undefined,
         relatedFiles: relatedFiles.length > 0 ? relatedFiles : undefined,
       })
+      const isEdit = !!task
+      toast.success(
+        isEdit ? "Task updated successfully" : "Task created successfully",
+        {
+          description: `Your task **${formData.name || "Task"}** has been ${isEdit ? "updated" : "created"}`,
+          duration: 3000,
+        }
+      )
       router.push("/dev/tasks")
     } catch (error) {
       console.error("Error submitting task:", error)
+      const isEdit = !!task
+      toast.error(
+        isEdit ? "Failed to update task" : "Failed to create task",
+        {
+          description: error instanceof Error ? error.message : "An error occurred. Please try again.",
+          duration: 5000,
+        }
+      )
     } finally {
       setIsSubmitting(false)
     }

@@ -1,8 +1,10 @@
 "use client"
 
-import { use } from "react"
+import { use, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { notFound } from "next/navigation"
 import { DevTaskForm } from "@/components/forms/DevTaskForm"
+import { Skeleton } from "@/components/ui/skeleton"
 import { initialDevTasks } from "@/lib/data/dev-tasks"
 import { DevTask } from "@/lib/types/dev-task"
 
@@ -63,10 +65,44 @@ export default function EditTaskPage({ params }: { params: Promise<{ id: string 
     queryFn: () => fetchDevTask(id),
   })
 
+  // Handle 404 for missing tasks
+  useEffect(() => {
+    if (error && error instanceof Error && error.message.toLowerCase().includes("not found")) {
+      notFound()
+    }
+    if (!isLoading && !error && !task) {
+      notFound()
+    }
+  }, [error, isLoading, task])
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading task...</div>
+      <div className="space-y-6">
+        {/* Form Skeleton */}
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-10 w-full rounded-md" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-24 w-full rounded-md" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-4">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </div>
       </div>
     )
   }

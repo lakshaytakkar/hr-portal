@@ -1,13 +1,14 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Plus,
   Search,
@@ -20,6 +21,14 @@ import { Project, ProjectStatus } from "@/lib/types/project"
 import { initialProjects } from "@/lib/data/projects"
 import { cn } from "@/lib/utils"
 import { getAvatarForUser } from "@/lib/utils/avatars"
+import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog"
+import { EditProjectDialog } from "@/components/projects/EditProjectDialog"
+import { RowActionsMenu } from "@/components/actions/RowActionsMenu"
+import { ErrorState } from "@/components/ui/error-state"
+import { EmptyState } from "@/components/ui/empty-state"
+import { SearchNoResults } from "@/components/ui/search-no-results"
+import { FolderOpen } from "lucide-react"
+import { KanbanBoard, KanbanColumn } from "@/components/kanban/KanbanBoard"
 
 // Map project status to Kanban column
 const statusToColumn: Record<ProjectStatus, "not-started" | "in-progress" | "completed" | "on-hold"> = {
@@ -28,6 +37,14 @@ const statusToColumn: Record<ProjectStatus, "not-started" | "in-progress" | "com
   completed: "completed",
   "on-hold": "on-hold",
   cancelled: "on-hold",
+}
+
+// Map column to project status
+const columnToStatus: Record<"not-started" | "in-progress" | "completed" | "on-hold", ProjectStatus> = {
+  "not-started": "planning",
+  "in-progress": "active",
+  completed: "completed",
+  "on-hold": "on-hold",
 }
 
 // Status badge config for Kanban cards
@@ -74,7 +91,7 @@ async function fetchProjects() {
 }
 
 // Project Card Component
-function ProjectCard({ project }: { project: Project }) {
+function ProjectCard({ project, onEdit, onDelete }: { project: Project; onEdit?: () => void; onDelete?: () => Promise<void> }) {
   const status = statusBadgeConfig[project.status]
   const remainingTasks = project.tasksCount ? project.tasksCount - (project.completedTasksCount || 0) : 0
   
@@ -118,33 +135,43 @@ function ProjectCard({ project }: { project: Project }) {
   }
 
   return (
-    <Link href={`/projects/${project.id}`}>
-      <Card className="border border-border rounded-2xl p-4 bg-white hover:border-primary transition-colors cursor-pointer">
-        <div className="flex items-start justify-between mb-2">
-          <div className="bg-primary rounded-lg w-8 h-8 flex items-center justify-center">
-            <Folder className="h-5 w-5 text-white" />
+    <div className="relative">
+      <Link href={`/projects/${project.id}`} onClick={(e) => {
+        // Prevent navigation if user is dragging
+        if ((e.target as HTMLElement).closest('[data-sortable-handle]')) {
+          e.preventDefault()
+        }
+      }}>
+        <Card className="border border-border rounded-2xl p-4 bg-white hover:border-primary transition-colors cursor-pointer">
+          <div className="flex items-start justify-between mb-2">
+            <div className="bg-primary rounded-lg w-8 h-8 flex items-center justify-center">
+              <Folder className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={status.variant} className="h-6 px-2.5 py-0.5 rounded-2xl text-sm font-medium leading-5">
+                {status.label}
+              </Badge>
+              <div onClick={(e) => e.stopPropagation()}>
+                <RowActionsMenu
+                  entityType="project"
+                  entityId={project.id}
+                  entityName={project.name}
+                  detailUrl={`/projects/${project.id}`}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  canView={true}
+                  canEdit={true}
+                  canDelete={false}
+                />
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={status.variant} className="h-6 px-2.5 py-0.5 rounded-2xl text-sm font-medium leading-5">
-              {status.label}
-            </Badge>
-            <button 
-              className="w-4 h-4 flex items-center justify-center"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-            >
-              <MoreVertical className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-        </div>
         
         <div className="flex flex-col gap-1.5 mb-2">
           <h3 className="font-semibold text-base text-foreground leading-6 tracking-[0.32px]">
             {project.name}
           </h3>
-          <p className="text-xs text-muted-foreground font-medium leading-4 tracking-[0.24px]">
+          <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px]">
             {getDescription()}
           </p>
         </div>
@@ -162,7 +189,7 @@ function ProjectCard({ project }: { project: Project }) {
               style={{ width: `${project.progress}%` }}
             />
           </div>
-          <span className="text-xs text-muted-foreground font-medium leading-4 tracking-[0.24px]">
+          <span className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px]">
             {project.progress}%
           </span>
         </div>
@@ -188,31 +215,127 @@ function ProjectCard({ project }: { project: Project }) {
           ))}
         </div>
       </div>
-      </Card>
-    </Link>
+        </Card>
+      </Link>
+    </div>
   )
 }
 
 export default function ProjectsPage() {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const { data: projects, isLoading, error } = useQuery({
+  const queryClient = useQueryClient()
+  const { data: projects, isLoading, error, refetch } = useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
   })
 
+  const handleEditProject = (project: Project) => {
+    setEditingProject(project)
+    setIsEditDrawerOpen(true)
+  }
+
+  const handleDeleteProject = async (project: Project) => {
+    return new Promise<void>((resolve, reject) => {
+      // Simulate delete API call
+      setTimeout(() => {
+        console.log("Delete project:", project.id)
+        refetch()
+        resolve()
+      }, 500)
+    })
+  }
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading projects...</div>
+      <div className="space-y-5">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border border-border rounded-2xl p-[18px] bg-white">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <div className="flex items-center justify-between mt-0.5">
+                <Skeleton className="h-7 w-12" />
+                <Skeleton className="h-9 w-9 rounded-lg" />
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Kanban Board Skeleton */}
+        <Card className="border border-border rounded-2xl">
+          <div className="border-b border-border h-16 flex items-center justify-between px-5">
+            <Skeleton className="h-5 w-32" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-[38px] w-64 rounded-[10px]" />
+              <Skeleton className="h-[38px] w-[38px] rounded-[10px]" />
+            </div>
+          </div>
+          <CardContent className="p-5">
+            <div className="flex gap-5">
+              {[1, 2, 3, 4].map((colIndex) => (
+                <div key={colIndex} className="flex-1 flex flex-col gap-3">
+                  {/* Column Header Skeleton */}
+                  <div className="bg-muted h-10 rounded-lg px-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1">
+                      <Skeleton className="h-2.5 w-2.5 rounded-full" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-5 w-5 rounded-md" />
+                    </div>
+                    <Skeleton className="h-5 w-5" />
+                  </div>
+                  {/* Project Cards Skeleton */}
+                  {[1, 2, 3].map((cardIndex) => (
+                    <Card key={cardIndex} className="border border-border rounded-2xl p-4 bg-white">
+                      <div className="flex items-start justify-between mb-2">
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-6 w-16 rounded-2xl" />
+                          <Skeleton className="h-4 w-4" />
+                        </div>
+                      </div>
+                      <div className="space-y-2 mb-2">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </div>
+                      <div className="flex items-end justify-between mt-2">
+                        <div className="flex items-center gap-2 flex-1">
+                          <Skeleton className="h-2 flex-1 rounded-full" />
+                          <Skeleton className="h-3 w-8" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3].map((i) => (
+                            <Skeleton key={i} className="h-6 w-6 rounded-full" />
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-destructive">Error loading projects. Please try again.</div>
-      </div>
+      <ErrorState
+        title="Failed to load projects"
+        message="We couldn't load your projects. Please check your connection and try again."
+        onRetry={() => refetch()}
+      />
     )
   }
 
@@ -223,10 +346,34 @@ export default function ProjectsPage() {
   ) || []
 
   // Organize projects into columns
-  const columnsWithProjects = columns.map((column) => ({
-    ...column,
-    projects: filteredProjects.filter((project) => statusToColumn[project.status] === column.id),
-  }))
+  const columnsWithProjects = useMemo(() => {
+    return columns.map((column) => ({
+      ...column,
+      items: filteredProjects.filter((project) => statusToColumn[project.status] === column.id),
+    }))
+  }, [filteredProjects])
+
+  // Handle project move between columns
+  const handleProjectMove = (projectId: string, newColumnId: string, oldColumnId: string) => {
+    if (newColumnId === oldColumnId) return
+
+    const newStatus = columnToStatus[newColumnId as keyof typeof columnToStatus]
+    if (!newStatus) return
+
+    // Optimistically update the UI
+    queryClient.setQueryData<Project[]>(["projects"], (oldProjects) => {
+      if (!oldProjects) return oldProjects
+      return oldProjects.map((project) =>
+        project.id === projectId
+          ? { ...project, status: newStatus, updatedAt: new Date().toISOString() }
+          : project
+      )
+    })
+
+    // In a real app, you would make an API call here
+    // For now, we'll just update the local state
+    console.log(`Moving project ${projectId} from ${oldColumnId} to ${newColumnId} (status: ${newStatus})`)
+  }
 
   // Calculate statistics
   const totalProjects = projects?.length || 0
@@ -248,7 +395,7 @@ export default function ProjectsPage() {
         <h1 className="text-xl font-semibold text-foreground leading-[1.35]">
           Projects Overview
         </h1>
-        <Button className="h-10 px-4 py-2 bg-primary border border-primary text-white rounded-lg hover:bg-primary/90">
+        <Button onClick={() => setIsDrawerOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           New Project
         </Button>
@@ -341,39 +488,55 @@ export default function ProjectsPage() {
         </div>
 
         <CardContent className="p-5">
-          {/* Kanban Board */}
-          <div className="flex gap-5">
-            {columnsWithProjects.map((column) => (
-              <div key={column.id} className="flex-1 flex flex-col gap-3">
-                {/* Column Header */}
-                <div className="bg-muted h-10 rounded-lg px-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className={cn("w-2.5 h-2.5 rounded-full", column.dotColor)} />
-                    <span className="text-base font-semibold text-foreground leading-6 tracking-[0.32px]">
-                      {column.title}
-                    </span>
-                    <div className="bg-white border border-border rounded-md w-5 h-5 flex items-center justify-center">
-                      <span className="text-xs font-semibold text-foreground leading-4 tracking-[0.24px]">
-                        {column.projects.length}
-                      </span>
-                    </div>
-                  </div>
-                  <button className="w-5 h-5 flex items-center justify-center">
-                    <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </div>
-
-                {/* Project Cards */}
-                <div className="flex flex-col gap-3">
-                  {column.projects.map((project) => (
-                    <ProjectCard key={project.id} project={project} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* Show empty state if no projects at all */}
+          {projects && projects.length === 0 ? (
+            <EmptyState
+              icon={FolderOpen}
+              title="No projects yet"
+              description="Get started by creating your first project to organize your work."
+              action={{
+                label: "Create New Project",
+                onClick: () => setIsDrawerOpen(true),
+              }}
+            />
+          ) : filteredProjects.length === 0 && searchQuery ? (
+            // Show "no results" when search returns empty
+            <SearchNoResults
+              query={searchQuery}
+              onClear={() => setSearchQuery("")}
+            />
+          ) : (
+            /* Kanban Board */
+            <KanbanBoard
+              columns={columnsWithProjects}
+              onItemMove={handleProjectMove}
+              getItemId={(project) => project.id}
+              renderItem={(project) => (
+                <ProjectCard
+                  project={project}
+                  onEdit={() => handleEditProject(project)}
+                  onDelete={() => handleDeleteProject(project)}
+                />
+              )}
+            />
+          )}
         </CardContent>
       </Card>
+
+      {/* Create Project Drawer */}
+      <CreateProjectDialog open={isDrawerOpen} onOpenChange={setIsDrawerOpen} />
+      
+      {/* Edit Project Dialog */}
+      <EditProjectDialog
+        open={isEditDrawerOpen}
+        onOpenChange={(open) => {
+          setIsEditDrawerOpen(open)
+          if (!open) {
+            setEditingProject(null)
+          }
+        }}
+        project={editingProject}
+      />
     </div>
   )
 }

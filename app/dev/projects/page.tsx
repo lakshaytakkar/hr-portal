@@ -8,12 +8,14 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Plus,
   Search,
   Filter,
   MoreVertical,
   Folder,
+  FolderOpen,
   CheckCircle2,
   Code,
   Edit,
@@ -24,6 +26,9 @@ import { DevProject, DevProjectStatus } from "@/lib/types/dev-project"
 import { initialDevProjects } from "@/lib/data/dev-projects"
 import { cn } from "@/lib/utils"
 import { getAvatarForUser } from "@/lib/utils/avatars"
+import { ErrorState } from "@/components/ui/error-state"
+import { EmptyState } from "@/components/ui/empty-state"
+import { SearchNoResults } from "@/components/ui/search-no-results"
 
 const statusToColumn: Record<DevProjectStatus, "not-started" | "in-progress" | "completed" | "on-hold"> = {
   planning: "not-started",
@@ -173,24 +178,100 @@ function DevProjectCard({ project }: { project: DevProject }) {
 
 export default function DevProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const { data: projects, isLoading, error } = useQuery({
+  const { data: projects, isLoading, error, refetch } = useQuery({
     queryKey: ["dev-projects"],
     queryFn: fetchDevProjects,
   })
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground font-medium animate-pulse">Loading roadmap...</div>
+      <div className="space-y-10 pb-12">
+        {/* Header Skeleton */}
+        <div className="flex items-end justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-6 w-96" />
+          </div>
+          <Skeleton className="h-11 w-40 rounded-xl" />
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="bg-secondary/20 border-border/40 p-5">
+              <Skeleton className="h-3 w-24 mb-1" />
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-8 w-12" />
+                <Skeleton className="h-5 w-5" />
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Kanban Board Skeleton */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-48" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-72 rounded-lg" />
+              <Skeleton className="h-10 w-10 rounded-lg" />
+            </div>
+          </div>
+          <div className="flex gap-6 overflow-x-auto pb-4">
+            {[1, 2, 3, 4].map((colIndex) => (
+              <div key={colIndex} className="min-w-[300px] flex-1 flex flex-col gap-4">
+                {/* Column Header Skeleton */}
+                <div className="flex items-center justify-between px-2 py-1">
+                  <div className="flex items-center gap-2.5">
+                    <Skeleton className="h-2 w-2 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-5 w-8 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-4" />
+                </div>
+                {/* Project Cards Skeleton */}
+                {[1, 2, 3].map((cardIndex) => (
+                  <Card key={cardIndex} className="border border-border/50 rounded-xl p-4 bg-secondary/20">
+                    <div className="flex items-start justify-between mb-3">
+                      <Skeleton className="h-8 w-8 rounded-lg" />
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-5 w-16 rounded-md" />
+                        <Skeleton className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="space-y-1 mb-4">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1">
+                        <Skeleton className="h-1 flex-1 rounded-full" />
+                        <Skeleton className="h-3 w-8" />
+                      </div>
+                      <div className="flex items-center ml-4">
+                        {[1, 2, 3].map((i) => (
+                          <Skeleton key={i} className="h-5 w-5 rounded-full" />
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-destructive font-bold">Failed to load projects.</div>
-      </div>
+      <ErrorState
+        title="Failed to load projects"
+        message="We couldn't load your development projects. Please check your connection and try again."
+        onRetry={() => refetch()}
+      />
     )
   }
 
@@ -270,39 +351,57 @@ export default function DevProjectsPage() {
           </div>
         </div>
 
-        <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-none">
-          {columnsWithProjects.map((column) => (
-            <div key={column.id} className="min-w-[300px] flex-1 flex flex-col gap-4">
-              {/* Column Header */}
-              <div className="flex items-center justify-between px-2 py-1">
-                <div className="flex items-center gap-2.5">
-                  <div className={cn("size-2 rounded-full", column.dotColor)} />
-                  <span className="font-bold text-sm tracking-tight uppercase opacity-80">
-                    {column.title}
-                  </span>
-                  <span className="text-[10px] font-bold text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full border border-border/20">
-                    {column.projects.length}
-                  </span>
-                </div>
-                <button className="text-muted-foreground/40 hover:text-foreground transition-colors">
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Project Cards */}
-              <div className="flex flex-col gap-4">
-                {column.projects.map((project) => (
-                  <DevProjectCard key={project.id} project={project} />
-                ))}
-                {column.projects.length === 0 && (
-                  <div className="h-24 border border-dashed border-border/30 rounded-xl flex items-center justify-center">
-                    <p className="text-xs text-muted-foreground font-medium italic">Empty</p>
+        {projects && projects.length === 0 ? (
+          <EmptyState
+            icon={FolderOpen}
+            title="No projects yet"
+            description="Get started by creating your first development project."
+            action={{
+              label: "Create New Initiative",
+              onClick: () => window.location.href = "/dev/projects/new",
+            }}
+          />
+        ) : filteredProjects.length === 0 && searchQuery ? (
+          <SearchNoResults
+            query={searchQuery}
+            onClear={() => setSearchQuery("")}
+          />
+        ) : (
+          <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-none">
+            {columnsWithProjects.map((column) => (
+              <div key={column.id} className="min-w-[300px] flex-1 flex flex-col gap-4">
+                {/* Column Header */}
+                <div className="flex items-center justify-between px-2 py-1">
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn("size-2 rounded-full", column.dotColor)} />
+                    <span className="font-bold text-sm tracking-tight uppercase opacity-80">
+                      {column.title}
+                    </span>
+                    <span className="text-[10px] font-bold text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full border border-border/20">
+                      {column.projects.length}
+                    </span>
                   </div>
-                )}
+                  <button className="text-muted-foreground/40 hover:text-foreground transition-colors">
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Project Cards */}
+                <div className="flex flex-col gap-4">
+                  {column.projects.length > 0 ? (
+                    column.projects.map((project) => (
+                      <DevProjectCard key={project.id} project={project} />
+                    ))
+                  ) : (
+                    <div className="h-24 border border-dashed border-border/30 rounded-xl flex items-center justify-center">
+                      <p className="text-xs text-muted-foreground font-medium italic">Empty</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

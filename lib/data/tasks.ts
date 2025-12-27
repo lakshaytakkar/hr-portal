@@ -15,7 +15,6 @@ export const initialTasks: ProjectTaskData = {
         id: "resource-1",
         name: "Sarah Johnson",
         email: "sarah@example.com",
-        avatar: "/avatars/merged/avatar-13.svg",
       },
       subtasks: [
         {
@@ -31,7 +30,6 @@ export const initialTasks: ProjectTaskData = {
             id: "resource-2",
             name: "Mike Chen",
             email: "mike@example.com",
-            avatar: "/avatars/merged/avatar-12.svg",
           },
           subtasks: [
             {
@@ -151,7 +149,6 @@ export const initialTasks: ProjectTaskData = {
             id: "resource-3",
             name: "Alex Rivera",
             email: "alex@example.com",
-            avatar: "/avatars/merged/avatar-11.svg",
           },
           subtasks: [
             {
@@ -213,7 +210,6 @@ export const initialTasks: ProjectTaskData = {
             id: "resource-3",
             name: "Alex Rivera",
             email: "alex@example.com",
-            avatar: "/avatars/merged/avatar-11.svg",
           },
           subtasks: [
             {
@@ -360,7 +356,6 @@ export const initialTasks: ProjectTaskData = {
         id: "resource-4",
         name: "David Kim",
         email: "david@example.com",
-        avatar: "/avatars/merged/avatar-10.svg",
       },
       subtasks: [
         {
@@ -542,7 +537,6 @@ export const initialTasks: ProjectTaskData = {
         id: "resource-5",
         name: "Emma Wilson",
         email: "emma@example.com",
-            avatar: "/avatars/merged/avatar-9.svg",
       },
       subtasks: [
         {
@@ -668,7 +662,6 @@ export const initialTasks: ProjectTaskData = {
         id: "resource-6",
         name: "Lisa Anderson",
         email: "lisa@example.com",
-        avatar: "/avatars/merged/avatar-8.svg",
       },
       subtasks: [
         {
@@ -716,7 +709,6 @@ export const initialTasks: ProjectTaskData = {
         id: "resource-7",
         name: "Tom Martinez",
         email: "tom@example.com",
-        avatar: "/avatars/merged/avatar-7.svg",
       },
       subtasks: [
         {
@@ -848,7 +840,6 @@ export const initialTasks: ProjectTaskData = {
         id: "resource-8",
         name: "Patricia Lee",
         email: "patricia@example.com",
-        avatar: "/avatars/merged/avatar-6.svg",
       },
       subtasks: [
         {

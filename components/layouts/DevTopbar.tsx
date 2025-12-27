@@ -3,7 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 import { Search, Bell } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { getAvatarForUser } from "@/lib/utils/avatars"
 import { Separator } from "@/components/ui/separator"
 import { usePathname } from "next/navigation"
 import { ModeToggle } from "@/components/ModeToggle"
@@ -103,6 +104,7 @@ export function DevTopbar({ breadcrumbs }: DevTopbarProps) {
             <p className="font-medium text-muted-foreground">Admin Access</p>
           </div>
           <Avatar className="h-9 w-9 border-2 border-border group-hover:border-primary transition-colors">
+            <AvatarImage src={getAvatarForUser("Developer")} alt="Developer" />
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">DV</AvatarFallback>
           </Avatar>
         </div>

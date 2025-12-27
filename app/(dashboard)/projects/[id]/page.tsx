@@ -1,8 +1,9 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
-import { useState, useMemo } from "react"
-import { useParams } from "next/navigation"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState, useMemo, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Search,
   Filter,
@@ -19,6 +21,7 @@ import {
   MessageSquare,
   Plus,
   ChevronDown,
+  Folder,
 } from "lucide-react"
 import { Project } from "@/lib/types/project"
 import { Task, TaskStatus, TaskPriority, TaskResource } from "@/lib/types/task"
@@ -26,6 +29,13 @@ import { initialProjects } from "@/lib/data/projects"
 import { initialTasks } from "@/lib/data/tasks"
 import { cn } from "@/lib/utils"
 import { getAvatarForUser } from "@/lib/utils/avatars"
+import { ErrorState } from "@/components/ui/error-state"
+import { EmptyState } from "@/components/ui/empty-state"
+import { SearchNoResults } from "@/components/ui/search-no-results"
+import { ListTodo, FolderOpen } from "lucide-react"
+import { DetailPageHeader, DetailQuickTile } from "@/components/details"
+import { useDetailNavigation } from "@/lib/hooks/useDetailNavigation"
+import { KanbanBoard } from "@/components/kanban/KanbanBoard"
 
 // Map task status to Kanban column
 const statusToColumn: Record<TaskStatus, "to-do" | "in-progress" | "review" | "completed"> = {
@@ -34,6 +44,14 @@ const statusToColumn: Record<TaskStatus, "to-do" | "in-progress" | "review" | "c
   "in-review": "review",
   completed: "completed",
   blocked: "to-do",
+}
+
+// Map column to task status
+const columnToStatus: Record<"to-do" | "in-progress" | "review" | "completed", TaskStatus> = {
+  "to-do": "not-started",
+  "in-progress": "in-progress",
+  "review": "in-review",
+  "completed": "completed",
 }
 
 // Priority badge config
@@ -468,6 +486,7 @@ function TaskCard({ task }: { task: Task }) {
 
 export default function ProjectDetailsPage() {
   const params = useParams()
+  const router = useRouter()
   const projectId = params.id as string
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState("kanban")
@@ -476,14 +495,37 @@ export default function ProjectDetailsPage() {
   )
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
-  const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
+  const { data: project, isLoading: projectLoading, error: projectError, refetch: refetchProject } = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => fetchProject(projectId),
   })
 
-  const { data: allTasks, isLoading: tasksLoading } = useQuery({
+  const { data: allTasks, isLoading: tasksLoading, error: tasksError, refetch: refetchTasks } = useQuery({
     queryKey: ["project-tasks", projectId],
     queryFn: fetchProjectTasks,
+  })
+
+  // Handle 404 for missing projects
+  useEffect(() => {
+    if (projectError && projectError instanceof Error && projectError.message.toLowerCase().includes("not found")) {
+      notFound()
+    }
+  }, [projectError])
+
+  // Navigation setup
+  const { data: allProjects } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      return initialProjects.projects
+    },
+  })
+
+  const navigation = useDetailNavigation({
+    currentId: projectId,
+    items: allProjects || [],
+    getId: (p) => p.id,
+    basePath: "/projects",
   })
 
   // Filter and organize tasks
@@ -499,25 +541,143 @@ export default function ProjectDetailsPage() {
   const columnsWithTasks = useMemo(() => {
     return columns.map((column) => ({
       ...column,
-      tasks: filteredTasks.filter((task) => {
+      items: filteredTasks.filter((task) => {
         const columnId = statusToColumn[task.status]
         return columnId === column.id
       }),
     }))
   }, [filteredTasks])
 
+  const queryClient = useQueryClient()
+
+  // Handle task move between columns
+  const handleTaskMove = (taskId: string, newColumnId: string, oldColumnId: string) => {
+    if (newColumnId === oldColumnId) return
+
+    const newStatus = columnToStatus[newColumnId as keyof typeof columnToStatus]
+    if (!newStatus) return
+
+    // Optimistically update the UI
+    queryClient.setQueryData<Task[]>(["project-tasks", projectId], (oldTasks) => {
+      if (!oldTasks) return oldTasks
+      
+      const updateTaskStatus = <T extends Task>(task: T): T => {
+        if (task.id === taskId) {
+          return { ...task, status: newStatus, updatedAt: new Date().toISOString() }
+        }
+        if ("subtasks" in task && task.subtasks) {
+          return {
+            ...task,
+            subtasks: task.subtasks.map(updateTaskStatus),
+          } as T
+        }
+        return task
+      }
+
+      return oldTasks.map(updateTaskStatus)
+    })
+
+    // In a real app, you would make an API call here
+    console.log(`Moving task ${taskId} from ${oldColumnId} to ${newColumnId} (status: ${newStatus})`)
+  }
+
   if (projectLoading || tasksLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading project...</div>
+      <div className="space-y-5">
+        {/* Project Header Skeleton */}
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-9 w-64" />
+          <div className="flex flex-col gap-2.5">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center">
+                <Skeleton className="h-6 w-[150px]" />
+                <Skeleton className="h-6 w-32 ml-4" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tasks Section Skeleton */}
+        <Card className="border border-border rounded-2xl">
+          <div className="border-b border-border h-16 flex items-center justify-between px-5">
+            <div className="flex items-center gap-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-20 rounded-[10px]" />
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-[38px] w-64 rounded-[10px]" />
+              <Skeleton className="h-[38px] w-[38px] rounded-[10px]" />
+            </div>
+          </div>
+          <CardContent className="p-5">
+            <div className="flex gap-5">
+              {[1, 2, 3, 4].map((colIndex) => (
+                <div key={colIndex} className="flex-1 flex flex-col gap-3">
+                  {/* Column Header Skeleton */}
+                  <div className="bg-muted h-10 rounded-lg px-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1">
+                      <Skeleton className="h-2.5 w-2.5 rounded-full" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-5 w-5 rounded-md" />
+                    </div>
+                    <Skeleton className="h-5 w-5" />
+                  </div>
+                  {/* Task Cards Skeleton */}
+                  {[1, 2].map((cardIndex) => (
+                    <Card key={cardIndex} className="border border-border rounded-2xl p-4 bg-white">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <Skeleton className="h-6 w-16 rounded-2xl" />
+                        <Skeleton className="h-4 w-4" />
+                      </div>
+                      <div className="border-b border-border pb-2.5 mb-2.5">
+                        <Skeleton className="h-4 w-full mb-1.5" />
+                        <Skeleton className="h-3 w-full mb-1" />
+                        <Skeleton className="h-3 w-3/4 mb-2.5" />
+                        <div className="flex gap-6">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-12" />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-5 w-12" />
+                        <Skeleton className="h-6 w-6 rounded-full" />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (projectError || !project) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-destructive">Project not found</div>
+      <ErrorState
+        title="Failed to load project"
+        message={projectError ? "We couldn't load this project. Please check your connection and try again." : "Project not found."}
+        onRetry={() => refetchProject()}
+      />
+    )
+  }
+
+  if (tasksError) {
+    return (
+      <div className="space-y-5">
+        {/* Project Header */}
+        <div className="flex flex-col gap-4">
+          <h1 className="text-2xl font-semibold text-foreground leading-[1.3]">
+            {project.name}
+          </h1>
+        </div>
+        <ErrorState
+          title="Failed to load tasks"
+          message="We couldn't load the tasks for this project. Please check your connection and try again."
+          onRetry={() => refetchTasks()}
+        />
       </div>
     )
   }
@@ -528,117 +688,87 @@ export default function ProjectDetailsPage() {
     ? `${new Date(project.startDate).toLocaleDateString("en-US", { month: "long", day: "numeric" })} - ${new Date(displayDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
     : ""
 
+  const breadcrumbs = [
+    { label: "Home", href: "/" },
+    { label: "Projects", href: "/projects" },
+    { label: project.name },
+  ]
+
   return (
     <div className="space-y-5">
-      {/* Project Header */}
-      <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold text-foreground leading-[1.3]">
-          {project.name}
-        </h1>
-        
-        <div className="flex flex-col gap-2.5">
-          {/* Project Status */}
-          <div className="flex items-center">
-            <span className="text-base text-muted-foreground font-normal leading-6 tracking-[0.32px] w-[150px]">
-              Project Status
-            </span>
-            <Badge variant={status.variant} className="h-6 px-2.5 py-0.5 rounded-2xl text-sm font-medium leading-5">
-              {status.label}
-            </Badge>
+      {/* Page Header with Breadcrumbs and Navigation */}
+      <DetailPageHeader
+        breadcrumbs={breadcrumbs}
+        onBack={() => router.push("/projects")}
+        onNext={navigation.navigateNext}
+        onPrev={navigation.navigatePrev}
+        hasNext={navigation.hasNext}
+        hasPrev={navigation.hasPrev}
+      />
+
+      {/* Quick Tile Header */}
+      <DetailQuickTile
+        thumbnail={
+          <div className="w-full h-full bg-primary rounded-lg flex items-center justify-center">
+            <Folder className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
           </div>
-          
-          {/* Progress */}
-          <div className="flex items-center">
-            <span className="text-base text-muted-foreground font-normal leading-6 tracking-[0.32px] w-[150px]">
-              Progress
-            </span>
-            <div className="flex items-center gap-4">
-              <span className="text-base text-foreground font-medium leading-6 tracking-[0.32px]">
-                {project.progress}%
-              </span>
-              <div className="relative w-[130px] h-2 bg-border rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-l-full transition-all"
-                  style={{ width: `${project.progress}%` }}
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Dates */}
-          {dateRange && (
-            <div className="flex items-center">
-              <span className="text-base text-muted-foreground font-normal leading-6 tracking-[0.32px] w-[150px]">
-                Dates
-              </span>
-              <span className="text-base text-foreground font-medium leading-6 tracking-[0.32px]">
-                {dateRange}
-              </span>
-            </div>
-          )}
-          
-          {/* Project Manager */}
-          <div className="flex items-center">
-            <span className="text-base text-muted-foreground font-normal leading-6 tracking-[0.32px] w-[150px]">
-              Project Manager
-            </span>
-            <div className="flex items-center gap-1.5 pl-1 pr-3 py-1 border border-border rounded-[32px]">
-              <Avatar className="h-6 w-6 border-2 border-white rounded-full">
-                <AvatarImage src={getAvatarForUser(project.owner.id || project.owner.name)} alt={project.owner.name} />
-                <AvatarFallback className="text-xs bg-muted">
-                  {project.owner.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-base text-foreground font-medium leading-6 tracking-[0.32px]">
-                {project.owner.name}
-              </span>
-            </div>
-          </div>
-          
-          {/* Team Members */}
-          <div className="flex items-center">
-            <span className="text-base text-muted-foreground font-normal leading-6 tracking-[0.32px] w-[150px]">
-              Team Members
-            </span>
-            <div className="flex items-center gap-3">
-              {project.team.slice(0, 3).map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center gap-1.5 pl-1 pr-3 py-1 border border-border rounded-[32px]"
-                >
-                  <Avatar className="h-6 w-6 border-2 border-white rounded-full">
-                    <AvatarImage src={getAvatarForUser(member.id || member.name)} alt={member.name} />
-                    <AvatarFallback className="text-xs bg-muted">
-                      {member.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-base text-foreground font-medium leading-6 tracking-[0.32px]">
-                    {member.name}
-                  </span>
+        }
+        title={project.name}
+        subtitle={project.description}
+        status={status}
+        metadata={[
+          {
+            label: "Progress",
+            value: (
+              <div className="flex items-center gap-2">
+                <span>{project.progress}%</span>
+                <div className="relative w-[100px] h-2 bg-border rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-l-full transition-all"
+                    style={{ width: `${project.progress}%` }}
+                  />
                 </div>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-4 py-2 border border-border rounded-md shadow-[0px_1px_2px_0px_rgba(13,13,18,0.06)]"
-              >
-                <Plus className="h-3 w-3 mr-2" />
-                <span className="text-xs font-semibold text-foreground leading-4 tracking-[0.24px]">
-                  Invite
-                </span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+              </div>
+            ),
+          },
+          ...(dateRange
+            ? [
+                {
+                  label: "Dates",
+                  value: dateRange,
+                },
+              ]
+            : []),
+          {
+            label: "Project Manager",
+            value: (
+              <div className="flex items-center gap-1.5">
+                <Avatar className="h-5 w-5 border-2 border-white rounded-full">
+                  <AvatarImage
+                    src={getAvatarForUser(project.owner.id || project.owner.name)}
+                    alt={project.owner.name}
+                  />
+                  <AvatarFallback className="text-xs bg-muted">
+                    {project.owner.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span>{project.owner.name}</span>
+              </div>
+            ),
+          },
+          {
+            label: "Team Size",
+            value: `${project.team.length} members`,
+          },
+        ]}
+        onEdit={() => {
+          // TODO: Open edit drawer
+        }}
+      />
 
       {/* Tasks Section */}
       <Card className="border border-border rounded-2xl">
@@ -703,43 +833,30 @@ export default function ProjectDetailsPage() {
         </div>
 
         <CardContent className="p-5">
-          {viewMode === "kanban" && (
-            <div className="flex gap-5">
-              {columnsWithTasks.map((column) => (
-                <div key={column.id} className="flex-1 flex flex-col gap-3">
-                  {/* Column Header */}
-                  <div className="bg-muted h-10 rounded-lg px-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className={cn("w-2.5 h-2.5 rounded-full", column.dotColor)} />
-                      <span className="text-base font-semibold text-foreground leading-6 tracking-[0.32px]">
-                        {column.title}
-                      </span>
-                      <div className="bg-white border border-border rounded-md w-5 h-5 flex items-center justify-center">
-                        <span className="text-xs font-semibold text-foreground leading-4 tracking-[0.24px]">
-                          {column.tasks.length}
-                        </span>
-                      </div>
-                    </div>
-                    <button className="w-5 h-5 flex items-center justify-center">
-                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  </div>
-
-                  {/* Task Cards */}
-                  <div className="flex flex-col gap-3">
-                    {column.tasks.map((task) => (
-                      <TaskCard key={task.id} task={task} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {allTasks && allTasks.length === 0 ? (
+            <EmptyState
+              icon={ListTodo}
+              title="No tasks yet"
+              description="Get started by creating your first task for this project."
+            />
+          ) : filteredTasks.length === 0 && searchQuery ? (
+            <SearchNoResults
+              query={searchQuery}
+              onClear={() => setSearchQuery("")}
+            />
+          ) : viewMode === "kanban" ? (
+            <KanbanBoard
+              columns={columnsWithTasks}
+              onItemMove={handleTaskMove}
+              getItemId={(task) => task.id}
+              renderItem={(task) => <TaskCard task={task} />}
+            />
+          ) : null}
           
           {viewMode === "table" && (
             <div className="flex flex-col gap-4">
               {columnsWithTasks.map((column) => {
-                if (column.tasks.length === 0) return null
+                if (column.items.length === 0) return null
                 
                 const isExpanded = expandedSections.has(column.id)
                 const toggleSection = () => {
@@ -774,7 +891,7 @@ export default function ProjectDetailsPage() {
                         </span>
                         <div className="bg-white border border-border rounded-md w-5 h-5 flex items-center justify-center">
                           <span className="text-xs font-semibold text-foreground leading-4 tracking-[0.24px]">
-                            {column.tasks.length}
+                            {column.items.length}
                           </span>
                         </div>
                       </div>
@@ -827,7 +944,7 @@ export default function ProjectDetailsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {column.tasks.map((task) => {
+                          {column.items.map((task) => {
                             const priority = priorityBadgeConfig[task.priority]
                             const progress = calculateTaskProgress(task)
                             const dueDate = task.dueDate || task.updatedAt

@@ -1,0 +1,123 @@
+"use client"
+
+import { useQuery } from "@tanstack/react-query"
+import { Card, CardContent } from "@/components/ui/card"
+import { DollarSign, TrendingUp, Users, Target } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ErrorState } from "@/components/ui/error-state"
+import { initialDeals, initialLeads } from "@/lib/data/sales"
+
+async function fetchSalesSummary() {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  const totalRevenue = initialDeals.reduce((sum, deal) => sum + (deal.stage === "closed-won" ? deal.value : 0), 0)
+  const pipelineValue = initialDeals.filter(d => !d.stage.startsWith("closed")).reduce((sum, deal) => sum + deal.value, 0)
+  return {
+    totalRevenue,
+    pipelineValue,
+    totalLeads: initialLeads.length,
+    qualifiedLeads: initialLeads.filter(l => l.status === "qualified").length,
+    conversionRate: 34.2,
+  }
+}
+
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+}: {
+  title: string
+  value: string
+  icon: React.ElementType
+}) {
+  return (
+    <Card className="border border-border rounded-[14px] flex-1">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="bg-primary/10 rounded-full w-9 h-9 flex items-center justify-center shrink-0">
+            <Icon className="h-4 w-4 text-primary" />
+          </div>
+          <p className="text-sm font-medium text-foreground flex-1">{title}</p>
+        </div>
+        <p className="text-2xl font-semibold text-foreground leading-[1.3]">{value}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function CeoSalesSummaryPage() {
+  const { data: summary, isLoading, error, refetch } = useQuery({
+    queryKey: ["sales-summary"],
+    queryFn: fetchSalesSummary,
+  })
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border border-border rounded-[14px]">
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-24 mb-3" />
+                <Skeleton className="h-8 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="Failed to load sales summary"
+        message="We couldn't load sales summary data. Please check your connection and try again."
+        onRetry={() => refetch()}
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground leading-[1.35]">Sales Summary</h1>
+        <p className="text-sm text-muted-foreground mt-1">Sales department summary and metrics</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatCard
+          title="Total Revenue"
+          value={`$${(summary?.totalRevenue || 0).toLocaleString("en-US")}`}
+          icon={DollarSign}
+        />
+        <StatCard
+          title="Pipeline Value"
+          value={`$${(summary?.pipelineValue || 0).toLocaleString("en-US")}`}
+          icon={Target}
+        />
+        <StatCard
+          title="Total Leads"
+          value={(summary?.totalLeads || 0).toString()}
+          icon={Users}
+        />
+        <StatCard
+          title="Conversion Rate"
+          value={`${summary?.conversionRate || 0}%`}
+          icon={TrendingUp}
+        />
+      </div>
+
+      <Card className="border border-border rounded-[14px]">
+        <CardContent className="p-12">
+          <div className="text-center">
+            <p className="text-base font-medium text-muted-foreground mb-2">Sales Department Summary</p>
+            <p className="text-sm text-muted-foreground">
+              Comprehensive sales metrics and executive insights
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

@@ -1,8 +1,10 @@
 "use client"
 
-import { use } from "react"
+import { use, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { notFound } from "next/navigation"
 import { DevProjectForm } from "@/components/forms/DevProjectForm"
+import { Skeleton } from "@/components/ui/skeleton"
 import { initialDevProjects } from "@/lib/data/dev-projects"
 import { DevProject } from "@/lib/types/dev-project"
 
@@ -37,21 +39,48 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
     queryFn: () => fetchDevProject(id),
   })
 
+  // Handle 404 for missing projects
+  useEffect(() => {
+    if (error && error instanceof Error && error.message.toLowerCase().includes("not found")) {
+      notFound()
+    }
+    if (!isLoading && !error && !project) {
+      notFound()
+    }
+  }, [error, isLoading, project])
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading project...</div>
+      <div className="space-y-6">
+        {/* Form Skeleton */}
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-10 w-full rounded-md" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-24 w-full rounded-md" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-4">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </div>
       </div>
     )
   }
 
-  if (error || !project) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-destructive">Project not found</div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">

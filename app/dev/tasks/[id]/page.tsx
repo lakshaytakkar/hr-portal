@@ -1,11 +1,15 @@
 "use client"
 
-import { use } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { use, useState, useEffect } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, ExternalLink, FileText, Sparkles, Code, Edit, Trash2 } from "lucide-react"
 import { initialDevTasks } from "@/lib/data/dev-tasks"
 import { DevTask } from "@/lib/types/dev-task"
@@ -31,15 +35,77 @@ async function fetchDevTask(id: string) {
 
 export default function DevTaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  
   const { data: task, isLoading, error } = useQuery({
     queryKey: ["dev-task", id],
     queryFn: () => fetchDevTask(id),
   })
 
+  // Handle 404 for missing tasks
+  useEffect(() => {
+    if (error && error instanceof Error && error.message.toLowerCase().includes("not found")) {
+      notFound()
+    }
+    if (!isLoading && !error && !task) {
+      notFound()
+    }
+  }, [error, isLoading, task])
+
+  const handleDelete = () => {
+    // TODO: Implement actual delete logic
+    // For now, just invalidate and redirect
+    queryClient.invalidateQueries({ queryKey: ["dev-tasks"] })
+    router.push("/dev/tasks")
+    setDeleteDialogOpen(false)
+  }
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading task...</div>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 flex-1">
+            <Skeleton className="h-10 w-10 rounded-md" />
+            <div className="flex-1">
+              <Skeleton className="h-9 w-96 mb-2" />
+              <Skeleton className="h-5 w-full" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-4 w-16 mb-2" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Resources Section Skeleton */}
+        <Card>
+          <CardContent className="p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="p-3 bg-slate-50 rounded-lg">
+                  <Skeleton className="h-5 w-48 mb-2" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -91,12 +157,27 @@ export default function DevTaskDetailPage({ params }: { params: Promise<{ id: st
               Edit
             </Button>
           </Link>
-          <Button variant="outline" className="text-red-600 hover:text-red-700 hover:border-red-300">
+          <Button 
+            variant="destructive" 
+            onClick={() => setDeleteDialogOpen(true)}
+          >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </Button>
         </div>
       </div>
+
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        title="Delete Task"
+        description={`Are you sure you want to delete "${task.name}"? This action cannot be undone.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        icon={<Trash2 className="w-full h-full" />}
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

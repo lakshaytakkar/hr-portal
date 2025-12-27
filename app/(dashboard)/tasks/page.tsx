@@ -14,11 +14,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Plus, Minus, ExternalLink, User } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
+import { Plus, Minus, ExternalLink, User, CheckCircle2, Clock, AlertCircle, ListTodo } from "lucide-react"
 import { Task, TaskLevel0, TaskLevel1, TaskLevel2 } from "@/lib/types/task"
 import { initialTasks } from "@/lib/data/tasks"
 import { cn } from "@/lib/utils"
 import { getAvatarForUser } from "@/lib/utils/avatars"
+import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog"
+import { EditTaskDialog } from "@/components/tasks/EditTaskDialog"
+import { RowActionsMenu } from "@/components/actions/RowActionsMenu"
+import { ErrorState } from "@/components/ui/error-state"
+import { EmptyState } from "@/components/ui/empty-state"
+import { SearchNoResults } from "@/components/ui/search-no-results"
 
 // Status badge variants
 const statusConfig = {
@@ -52,10 +60,12 @@ interface TaskRowProps {
   level: number
   expandedRows: ExpandedRows
   onToggleExpand: (taskId: string) => void
+  onEdit?: (task: Task) => void
+  onDelete?: (task: Task) => Promise<void>
   isLast?: boolean
 }
 
-function TaskRow({ task, level, expandedRows, onToggleExpand, isLast }: TaskRowProps) {
+function TaskRow({ task, level, expandedRows, onToggleExpand, onEdit, onDelete, isLast }: TaskRowProps) {
   const hasSubtasks =
     (task.level === 0 && (task as TaskLevel0).subtasks && (task as TaskLevel0).subtasks!.length > 0) ||
     (task.level === 1 && (task as TaskLevel1).subtasks && (task as TaskLevel1).subtasks!.length > 0)
@@ -70,11 +80,16 @@ function TaskRow({ task, level, expandedRows, onToggleExpand, isLast }: TaskRowP
     <>
       <TableRow
         className={cn(
-          "hover:bg-muted/30 transition-colors",
+          "hover:bg-muted/30 transition-colors cursor-pointer",
           level === 0 && "bg-muted/20 font-semibold",
           level === 1 && "bg-muted/10",
           level === 2 && "text-sm"
         )}
+        onClick={() => {
+          if (level === 0) {
+            window.location.href = `/tasks/${task.id}`
+          }
+        }}
       >
         <TableCell className={cn("font-medium max-w-md", indentClass)}>
           <div className="flex items-center gap-2">
@@ -151,6 +166,21 @@ function TaskRow({ task, level, expandedRows, onToggleExpand, isLast }: TaskRowP
         <TableCell className="text-muted-foreground text-sm">
           {new Date(task.updatedAt).toLocaleDateString()}
         </TableCell>
+        <TableCell>
+          <div onClick={(e) => e.stopPropagation()}>
+            <RowActionsMenu
+              entityType="task"
+              entityId={task.id}
+              entityName={task.name}
+              detailUrl={`/tasks/${task.id}`}
+              onEdit={onEdit ? () => onEdit(task) : undefined}
+              onDelete={onDelete ? () => onDelete(task) : undefined}
+              canView={true}
+              canEdit={true}
+              canDelete={false}
+            />
+          </div>
+        </TableCell>
       </TableRow>
       {hasSubtasks && isExpanded && (
         <>
@@ -162,6 +192,8 @@ function TaskRow({ task, level, expandedRows, onToggleExpand, isLast }: TaskRowP
                 level={1}
                 expandedRows={expandedRows}
                 onToggleExpand={onToggleExpand}
+                onEdit={onEdit}
+                onDelete={onDelete}
                 isLast={index === (task as TaskLevel0).subtasks!.length - 1}
               />
             ))}
@@ -173,6 +205,8 @@ function TaskRow({ task, level, expandedRows, onToggleExpand, isLast }: TaskRowP
                 level={2}
                 expandedRows={expandedRows}
                 onToggleExpand={onToggleExpand}
+                onEdit={onEdit}
+                onDelete={onDelete}
                 isLast={index === (task as TaskLevel1).subtasks!.length - 1}
               />
             ))}
@@ -186,10 +220,29 @@ type TaskFilter = "all" | "today" | "this-week" | "overdue" | "completed"
 
 export default function TasksPage() {
   const [activeFilter, setActiveFilter] = useState<TaskFilter>("all")
-  const { data: tasks, isLoading, error } = useQuery({
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
+  const [isEditTaskOpen, setIsEditTaskOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const { data: tasks, isLoading, error, refetch } = useQuery({
     queryKey: ["project-tasks"],
     queryFn: fetchTasks,
   })
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task)
+    setIsEditTaskOpen(true)
+  }
+
+  const handleDeleteTask = async (task: Task) => {
+    return new Promise<void>((resolve, reject) => {
+      // Simulate delete API call
+      setTimeout(() => {
+        console.log("Delete task:", task.id)
+        refetch()
+        resolve()
+      }, 500)
+    })
+  }
 
   const [expandedRows, setExpandedRows] = useState<ExpandedRows>(() => {
     // Expand all level 0 tasks by default - initialize empty, will be set when tasks load
@@ -248,6 +301,43 @@ export default function TasksPage() {
         return total
       }
       return acc + countTotal(task)
+    }, 0)
+  }, [tasks])
+
+  const inProgressCount = useMemo(() => {
+    if (!tasks) return 0
+    return tasks.reduce((acc, task) => {
+      const countInProgress = (t: Task): number => {
+        let total = t.status === "in-progress" ? 1 : 0
+        if (t.level === 0 && (t as TaskLevel0).subtasks) {
+          total += (t as TaskLevel0).subtasks!.reduce((sum, st) => sum + countInProgress(st), 0)
+        } else if (t.level === 1 && (t as TaskLevel1).subtasks) {
+          total += (t as TaskLevel1).subtasks!.reduce((sum, st) => sum + countInProgress(st), 0)
+        }
+        return total
+      }
+      return acc + countInProgress(task)
+    }, 0)
+  }, [tasks])
+
+  const dueTodayCount = useMemo(() => {
+    if (!tasks) return 0
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    return tasks.reduce((acc, task) => {
+      const countDueToday = (t: Task): number => {
+        const taskDate = new Date(t.updatedAt)
+        taskDate.setHours(0, 0, 0, 0)
+        let total = taskDate.getTime() === today.getTime() && t.status !== "completed" ? 1 : 0
+        if (t.level === 0 && (t as TaskLevel0).subtasks) {
+          total += (t as TaskLevel0).subtasks!.reduce((sum, st) => sum + countDueToday(st), 0)
+        } else if (t.level === 1 && (t as TaskLevel1).subtasks) {
+          total += (t as TaskLevel1).subtasks!.reduce((sum, st) => sum + countDueToday(st), 0)
+        }
+        return total
+      }
+      return acc + countDueToday(task)
     }, 0)
   }, [tasks])
 
@@ -314,27 +404,94 @@ export default function TasksPage() {
   // Early returns after all hooks
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading tasks...</div>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+
+        {/* Filter Tabs Skeleton */}
+        <div className="flex gap-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-10 w-24 rounded-xl" />
+          ))}
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border border-border rounded-2xl p-[18px] bg-white">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <div className="flex items-center justify-between mt-0.5">
+                <Skeleton className="h-7 w-12" />
+                <Skeleton className="h-9 w-9 rounded-lg" />
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Table Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* Table Header Skeleton */}
+              <div className="grid grid-cols-5 gap-4 pb-2 border-b">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              {/* Table Rows Skeleton */}
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="grid grid-cols-5 gap-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-4" />
+                    <Skeleton className="h-4 flex-1" />
+                  </div>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-destructive">Error loading tasks. Please try again.</div>
-      </div>
+      <ErrorState
+        title="Failed to load tasks"
+        message="We couldn't load your tasks. Please check your connection and try again."
+        onRetry={() => refetch()}
+      />
     )
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground leading-[1.35]">My Tasks</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Track and manage all your project tasks from design to completion
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground leading-[1.35]">My Tasks</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track and manage all your project tasks from design to completion
+          </p>
+        </div>
+        <Button onClick={() => setIsCreateTaskOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Task
+        </Button>
       </div>
 
       {/* Filter Tabs */}
@@ -373,32 +530,62 @@ export default function TasksPage() {
         </TabsList>
       </Tabs>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalCount}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{completedCount}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {tasks?.filter((t) => t.status === "in-progress").length || 0}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-4 gap-6">
+        <Card className="border border-border rounded-2xl p-[18px] bg-white">
+          <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+            Total Tasks
+          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xl font-semibold text-foreground leading-[1.35]">
+              {totalCount}
+            </p>
+            <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+              <ListTodo className="h-5 w-5 text-primary" />
             </div>
-          </CardContent>
+          </div>
+        </Card>
+
+        <Card className="border border-border rounded-2xl p-[18px] bg-white">
+          <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+            Completed
+          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xl font-semibold text-foreground leading-[1.35]">
+              {completedCount}
+            </p>
+            <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="border border-border rounded-2xl p-[18px] bg-white">
+          <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+            In Progress
+          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xl font-semibold text-foreground leading-[1.35]">
+              {inProgressCount}
+            </p>
+            <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="border border-border rounded-2xl p-[18px] bg-white">
+          <p className="text-sm text-muted-foreground font-medium leading-5 tracking-[0.28px] mb-0.5">
+            Due Today
+          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xl font-semibold text-foreground leading-[1.35]">
+              {dueTodayCount}
+            </p>
+            <div className="bg-primary/10 rounded-lg w-9 h-9 flex items-center justify-center">
+              <AlertCircle className="h-5 w-5 text-primary" />
+            </div>
+          </div>
         </Card>
       </div>
 
@@ -418,6 +605,7 @@ export default function TasksPage() {
                 <TableHead>Priority</TableHead>
                 <TableHead>Assigned To</TableHead>
                 <TableHead>Last Updated</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -429,13 +617,29 @@ export default function TasksPage() {
                     level={0}
                     expandedRows={expandedRows}
                     onToggleExpand={onToggleExpand}
+                    onEdit={handleEditTask}
+                    onDelete={handleDeleteTask}
                     isLast={index === filteredTasks.length - 1}
                   />
                 ))
+              ) : tasks && tasks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24">
+                    <EmptyState
+                      icon={ListTodo}
+                      title="No tasks yet"
+                      description="Get started by creating your first task to track your work."
+                    />
+                  </TableCell>
+                </TableRow>
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    No tasks found for this filter.
+                  <TableCell colSpan={6} className="h-24">
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        No tasks found for this filter. Try selecting a different filter.
+                      </p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
@@ -443,6 +647,19 @@ export default function TasksPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <CreateTaskDialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen} />
+      
+      <EditTaskDialog
+        open={isEditTaskOpen}
+        onOpenChange={(open) => {
+          setIsEditTaskOpen(open)
+          if (!open) {
+            setEditingTask(null)
+          }
+        }}
+        task={editingTask}
+      />
     </div>
   )
 }

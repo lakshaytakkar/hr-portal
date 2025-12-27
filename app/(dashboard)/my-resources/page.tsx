@@ -24,7 +24,9 @@ import {
   Lock,
   CheckCircle2,
   XCircle,
+  Plus,
 } from "lucide-react"
+import { AddResourceDialog } from "@/components/my/AddResourceDialog"
 
 const categoryIcons = {
   design: Figma,
@@ -65,15 +67,22 @@ const userExternalApps = [
 
 export default function MyResourcesPage() {
   const [activeTab, setActiveTab] = useState("apps")
+  const [isAddResourceOpen, setIsAddResourceOpen] = useState(false)
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-semibold text-foreground leading-[1.35]">My Resources</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Access external apps, credentials, and integrations
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground leading-[1.35]">My Resources</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Access external apps, credentials, and integrations
+          </p>
+        </div>
+        <Button onClick={() => setIsAddResourceOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Resource
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -210,6 +219,7 @@ export default function MyResourcesPage() {
           </TabsContent>
         </div>
       </Tabs>
+      <AddResourceDialog open={isAddResourceOpen} onOpenChange={setIsAddResourceOpen} />
     </div>
   )
 }

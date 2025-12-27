@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   Folder,
@@ -20,6 +20,7 @@ import {
   Palette,
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { cn } from "@/lib/utils"
 import { ModeToggle } from "@/components/ModeToggle"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -66,7 +67,15 @@ const sectionLabels: Record<string, string> = {
 
 export function DevSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [isCollapsed, setIsCollapsed] = React.useState(false)
+  const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false)
+
+  const handleLogout = () => {
+    // TODO: Implement actual logout logic (clear session, tokens, etc.)
+    router.push("/sign-in")
+    setLogoutDialogOpen(false)
+  }
 
   const isActive = (href: string) => {
     if (href === "/dev") {
@@ -145,24 +154,49 @@ export function DevSidebar() {
           </div>
           {bottomMenuItems.map((item) => {
             const isLogout = item.label === "Logout"
+            if (isLogout) {
+              return (
+                <button
+                  key={item.href}
+                  onClick={() => setLogoutDialogOpen(true)}
+                  className={cn(
+                    "group flex gap-3 h-9 items-center px-3 py-2 rounded-md w-full transition-all text-left",
+                    "text-red-400/80 hover:bg-red-500/10 hover:text-red-400"
+                  )}
+                >
+                  <item.icon className="shrink-0 size-4" />
+                  <p className="flex-1 font-medium text-sm">{item.label}</p>
+                </button>
+              )
+            }
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
                   "group flex gap-3 h-9 items-center px-3 py-2 rounded-md w-full transition-all",
-                  isLogout
-                    ? "text-red-400/80 hover:bg-red-500/10 hover:text-red-400"
-                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                  "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                 )}
               >
-                <item.icon className={cn("shrink-0 size-4", isLogout ? "" : "text-muted-foreground group-hover:text-foreground")} />
+                <item.icon className="shrink-0 size-4 text-muted-foreground group-hover:text-foreground" />
                 <p className="flex-1 font-medium text-sm">{item.label}</p>
               </Link>
             )
           })}
         </div>
       </div>
+
+      <ConfirmationDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+        onConfirm={handleLogout}
+        title="Logout"
+        description="Are you sure want to Logout to Lumin?"
+        confirmText="Yes, Logout"
+        cancelText="Cancel"
+        variant="destructive"
+        icon={<LogOut className="w-full h-full" />}
+      />
     </div>
   )
 }

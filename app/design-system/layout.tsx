@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { Separator } from "@/components/ui/separator"
 
+export const dynamic = 'force-dynamic'
+
 export default function DesignSystemLayout({
   children,
 }: {

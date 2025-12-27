@@ -1,16 +1,25 @@
+"use client"
+
+import { Card, CardContent } from "@/components/ui/card"
+import { Star } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
+
 export default function MyPerformanceReviewsPage() {
   return (
-    <div>
-      <div className="mb-5 flex items-center justify-between">
+    <div className="space-y-5">
+      <div>
         <h1 className="text-xl font-semibold text-foreground leading-[1.35]">My Performance Reviews</h1>
+        <p className="text-sm text-muted-foreground mt-1">View and track your performance reviews</p>
       </div>
-      <div className="rounded-[14px] border border-border bg-white p-8">
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-base font-medium text-muted-foreground mb-2">Coming Soon</p>
-          <p className="text-sm text-muted-foreground">Performance reviews and feedback will be available here.</p>
-        </div>
-      </div>
+      <Card className="border border-border rounded-[14px]">
+        <CardContent className="p-12">
+          <EmptyState
+            icon={Star}
+            title="My Performance Reviews"
+            description="Performance reviews and feedback will be available here."
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }
-

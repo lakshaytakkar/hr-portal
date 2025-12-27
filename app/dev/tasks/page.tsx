@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Plus, Minus, ExternalLink, User, FileText, Sparkles, Edit, Trash2, MoreVertical, CheckSquare } from "lucide-react"
 import { DevTask, DevTaskLevel0, DevTaskLevel1, DevTaskLevel2 } from "@/lib/types/dev-task"
 import { initialDevTasks } from "@/lib/data/dev-tasks"
@@ -237,8 +238,70 @@ export default function DevTasksPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground font-medium animate-pulse">Scanning backlog...</div>
+      <div className="space-y-10 pb-12">
+        {/* Header Skeleton */}
+        <div className="flex items-end justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-6 w-96" />
+          </div>
+          <Skeleton className="h-11 w-32 rounded-xl" />
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="bg-secondary/20 border-border/40 p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-9 w-16" />
+                </div>
+                <Skeleton className="h-12 w-12 rounded-xl" />
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-9 w-28" />
+          </div>
+          <Card className="bg-secondary/20 border-border/40 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="space-y-3 p-6">
+                {/* Table Header Skeleton */}
+                <div className="grid grid-cols-6 gap-4 pb-4 border-b border-border/40">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                {/* Table Rows Skeleton */}
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="grid grid-cols-6 gap-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 flex-1" />
+                    </div>
+                    <Skeleton className="h-5 w-20 rounded-md" />
+                    <Skeleton className="h-5 w-16 rounded-md" />
+                    <div className="flex items-center gap-2.5">
+                      <Skeleton className="h-6 w-6 rounded-full" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }

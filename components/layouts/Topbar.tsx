@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useRouter } from "next/navigation"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { getAvatarForUser } from "@/lib/utils/avatars"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { User, LogOut, ChevronDown, PenTool } from "lucide-react"
 
 interface BreadcrumbItem {
@@ -23,8 +26,17 @@ interface TopbarProps {
 }
 
 export function Topbar({ breadcrumbs = [{ label: "Home" }, { label: "Dashboard" }] }: TopbarProps) {
+  const router = useRouter()
+  const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false)
+
+  const handleLogout = () => {
+    // TODO: Implement actual logout logic (clear session, tokens, etc.)
+    router.push("/sign-in")
+    setLogoutDialogOpen(false)
+  }
+
   return (
-    <div className="fixed top-0 right-0 left-[272px] h-[72px] border-b border-border bg-card flex items-center justify-between px-5 py-4 z-30">
+    <div className="h-[72px] border-b border-border mb-5 flex items-center justify-between px-5 py-4">
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-sm font-medium tracking-[0.28px]">
         {breadcrumbs.map((crumb, index) => (
@@ -50,9 +62,10 @@ export function Topbar({ breadcrumbs = [{ label: "Home" }, { label: "Dashboard" 
           <DropdownMenuTrigger asChild>
             <button className="flex gap-2 items-center hover:bg-muted rounded-lg px-2 py-1.5 transition-colors focus:outline-none">
               <Avatar className="h-8 w-8 bg-primary/20">
+                <AvatarImage src={getAvatarForUser("Robert Johnson")} alt="Robert Johnson" />
                 <AvatarFallback className="text-primary text-xs font-medium">RJ</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col items-start leading-[1.5] text-xs tracking-[0.24px]">
+              <div className="flex flex-col items-start leading-[1.5] text-sm tracking-[0.28px]">
                 <p className="font-semibold text-foreground">Robert Johnson</p>
                 <p className="font-normal text-muted-foreground">Super Admin</p>
               </div>
@@ -61,9 +74,9 @@ export function Topbar({ breadcrumbs = [{ label: "Home" }, { label: "Dashboard" 
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Robert Johnson</p>
-                <p className="text-xs leading-none text-muted-foreground">robert@example.com</p>
+              <div className="flex flex-col space-y-0.5">
+                <p className="text-sm font-medium leading-5 tracking-[0.28px]">Robert Johnson</p>
+                <p className="text-sm leading-5 tracking-[0.28px] text-muted-foreground">robert@example.com</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -80,15 +93,29 @@ export function Topbar({ breadcrumbs = [{ label: "Home" }, { label: "Dashboard" 
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild variant="destructive">
-              <Link href="/logout" className="cursor-pointer">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Logout</span>
-              </Link>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setLogoutDialogOpen(true)}
+              className="cursor-pointer"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Logout</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ConfirmationDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+        onConfirm={handleLogout}
+        title="Logout"
+        description="Are you sure want to Logout to Lumin?"
+        confirmText="Yes, Logout"
+        cancelText="Cancel"
+        variant="destructive"
+        icon={<LogOut className="w-full h-full" />}
+      />
     </div>
   )
 }

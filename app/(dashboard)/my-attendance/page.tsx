@@ -14,6 +14,7 @@ import {
 } from "@tanstack/react-table"
 import { Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, MoreVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { RequestLeaveDialog } from "@/components/attendance/RequestLeaveDialog"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { getAvatarForUser } from "@/lib/utils/avatars"
@@ -267,6 +268,7 @@ export default function MyAttendancePage() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [rowSelection, setRowSelection] = React.useState({})
+  const [isRequestLeaveOpen, setIsRequestLeaveOpen] = React.useState(false)
 
   const table = useReactTable({
     data,
@@ -301,7 +303,7 @@ export default function MyAttendancePage() {
             <Button variant="secondary" size="sm" className="h-10 border border-border">
               Download
             </Button>
-            <Button variant="primary" size="sm" className="h-10 border border-primary">
+            <Button variant="primary" size="sm" className="h-10" onClick={() => setIsRequestLeaveOpen(true)}>
               Request for Leave
             </Button>
           </div>
@@ -517,6 +519,8 @@ export default function MyAttendancePage() {
             </div>
           </div>
         </div>
+
+      <RequestLeaveDialog open={isRequestLeaveOpen} onOpenChange={setIsRequestLeaveOpen} />
     </div>
   )
 }

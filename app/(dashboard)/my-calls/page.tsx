@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -12,12 +13,120 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Phone, CalendarPlus } from "lucide-react"
+import { ScheduleCallDialog } from "@/components/calls/ScheduleCallDialog"
+import { EditCallDialog } from "@/components/calls/EditCallDialog"
+import { LogOutcomeDialog } from "@/components/calls/LogOutcomeDialog"
+import { RowActionsMenu } from "@/components/actions/RowActionsMenu"
+import { FileText } from "lucide-react"
+import { ErrorState } from "@/components/ui/error-state"
+import { EmptyState } from "@/components/ui/empty-state"
 
 type CallFilter = "all" | "scheduled" | "today" | "this-week" | "completed"
 
+async function fetchCalls() {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  return [] // Empty for now - will be replaced with actual data
+}
+
 export default function MyCallsPage() {
   const [activeFilter, setActiveFilter] = useState<CallFilter>("all")
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false)
+  const [isLogOutcomeOpen, setIsLogOutcomeOpen] = useState(false)
+  const [editingCallId, setEditingCallId] = useState<string | null>(null)
+  const [loggingOutcomeCallId, setLoggingOutcomeCallId] = useState<string | null>(null)
+  const { data: calls, isLoading, error, refetch } = useQuery({
+    queryKey: ["calls"],
+    queryFn: fetchCalls,
+  })
+
+  const handleEditCall = (callId: string) => {
+    setEditingCallId(callId)
+    setIsEditDrawerOpen(true)
+  }
+
+  const handleLogOutcome = (callId: string) => {
+    setLoggingOutcomeCallId(callId)
+    setIsLogOutcomeOpen(true)
+  }
+
+  const handleDeleteCall = async (callId: string) => {
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        console.log("Delete call:", callId)
+        refetch()
+        resolve()
+      }, 500)
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-40" />
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border border-border rounded-2xl p-[18px] bg-white">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <div className="flex items-center justify-between mt-0.5">
+                <Skeleton className="h-7 w-12" />
+                <Skeleton className="h-9 w-9 rounded-lg" />
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Table Skeleton */}
+        <Card className="border border-border rounded-2xl">
+          <CardHeader>
+            <Skeleton className="h-6 w-32 mb-2" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="grid grid-cols-5 gap-4 pb-2 border-b">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="grid grid-cols-5 gap-4 py-3">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="Failed to load calls"
+        message="We couldn't load your calls. Please check your connection and try again."
+        onRetry={() => refetch()}
+      />
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -29,7 +138,9 @@ export default function MyCallsPage() {
             View call history and schedule upcoming calls
           </p>
         </div>
-        <Button className="h-10 px-4 py-2 bg-primary border border-primary text-white rounded-lg hover:bg-primary/90">
+        <Button 
+          onClick={() => setIsDrawerOpen(true)}
+        >
           <CalendarPlus className="h-4 w-4 mr-2" />
           Schedule Call
         </Button>
@@ -141,11 +252,16 @@ export default function MyCallsPage() {
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        <div className="flex flex-col items-center justify-center py-12">
-                          <p className="text-base font-medium text-muted-foreground mb-2">No calls yet</p>
-                          <p className="text-sm text-muted-foreground">All your calls (scheduled and completed) will appear here.</p>
-                        </div>
+                      <TableCell colSpan={5} className="h-24">
+                        <EmptyState
+                          icon={Phone}
+                          title="No calls yet"
+                          description="All your calls (scheduled and completed) will appear here."
+                          action={{
+                            label: "Schedule Your First Call",
+                            onClick: () => setIsDrawerOpen(true),
+                          }}
+                        />
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -173,18 +289,16 @@ export default function MyCallsPage() {
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                        <div className="flex flex-col items-center justify-center py-12">
-                          <Phone className="h-8 w-8 text-muted-foreground mb-3 opacity-50" />
-                          <p className="text-base font-medium text-muted-foreground mb-2">No scheduled calls</p>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Schedule calls to manage your upcoming outreach activities.
-                          </p>
-                          <Button className="bg-primary text-white rounded-lg hover:bg-primary/90">
-                            <CalendarPlus className="h-4 w-4 mr-2" />
-                            Schedule Your First Call
-                          </Button>
-                        </div>
+                      <TableCell colSpan={6} className="h-24">
+                        <EmptyState
+                          icon={Phone}
+                          title="No scheduled calls"
+                          description="Schedule calls to manage your upcoming outreach activities."
+                          action={{
+                            label: "Schedule Your First Call",
+                            onClick: () => setIsDrawerOpen(true),
+                          }}
+                        />
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -207,15 +321,17 @@ export default function MyCallsPage() {
                       <TableHead>Company</TableHead>
                       <TableHead>Outcome</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        <div className="flex flex-col items-center justify-center py-12">
-                          <p className="text-base font-medium text-muted-foreground mb-2">No calls scheduled for today</p>
-                          <p className="text-sm text-muted-foreground">Calls happening today will appear here.</p>
-                        </div>
+                      <TableCell colSpan={6} className="h-24">
+                        <EmptyState
+                          icon={Phone}
+                          title="No calls scheduled for today"
+                          description="Calls happening today will appear here."
+                        />
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -238,15 +354,17 @@ export default function MyCallsPage() {
                       <TableHead>Company</TableHead>
                       <TableHead>Outcome</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        <div className="flex flex-col items-center justify-center py-12">
-                          <p className="text-base font-medium text-muted-foreground mb-2">No calls scheduled for this week</p>
-                          <p className="text-sm text-muted-foreground">Calls scheduled this week will appear here.</p>
-                        </div>
+                      <TableCell colSpan={6} className="h-24">
+                        <EmptyState
+                          icon={Phone}
+                          title="No calls scheduled for this week"
+                          description="Calls scheduled this week will appear here."
+                        />
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -269,17 +387,17 @@ export default function MyCallsPage() {
                       <TableHead>Company</TableHead>
                       <TableHead>Outcome</TableHead>
                       <TableHead>Duration</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        <div className="flex flex-col items-center justify-center py-12">
-                          <p className="text-base font-medium text-muted-foreground mb-2">No completed calls</p>
-                          <p className="text-sm text-muted-foreground">
-                            View your call history here. Completed calls from external sources will appear automatically.
-                          </p>
-                        </div>
+                      <TableCell colSpan={6} className="h-24">
+                        <EmptyState
+                          icon={Phone}
+                          title="No completed calls"
+                          description="View your call history here. Completed calls from external sources will appear automatically."
+                        />
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -289,6 +407,33 @@ export default function MyCallsPage() {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* Schedule Call Drawer */}
+      <ScheduleCallDialog open={isDrawerOpen} onOpenChange={setIsDrawerOpen} />
+      
+      {/* Edit Call Dialog */}
+      <EditCallDialog
+        open={isEditDrawerOpen}
+        onOpenChange={(open) => {
+          setIsEditDrawerOpen(open)
+          if (!open) {
+            setEditingCallId(null)
+          }
+        }}
+        call={editingCallId ? { id: editingCallId, contactName: "", phone: "", date: "", time: "" } : null}
+      />
+      
+      {/* Log Outcome Dialog */}
+      <LogOutcomeDialog
+        open={isLogOutcomeOpen}
+        onOpenChange={(open) => {
+          setIsLogOutcomeOpen(open)
+          if (!open) {
+            setLoggingOutcomeCallId(null)
+          }
+        }}
+        callId={loggingOutcomeCallId || undefined}
+      />
     </div>
   )
 }
