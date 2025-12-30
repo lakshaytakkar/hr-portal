@@ -165,11 +165,6 @@ export async function getLeaveRequests(
       data = data.filter((row: any) => row.status === 'pending')
     }
 
-    if (error) {
-      logDatabaseError(error, 'getLeaveRequests')
-      throw new Error(error.message)
-    }
-
     if (!data) return []
 
     return data.map((row: any) => ({

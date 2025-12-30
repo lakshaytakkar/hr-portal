@@ -210,13 +210,14 @@ export async function getCurrentUserProfile() {
       return null
     }
 
+    const dept = Array.isArray(profile.department) ? profile.department[0] : profile.department
     return {
       id: profile.id,
       email: profile.email,
       name: profile.full_name || profile.email.split('@')[0],
       role: profile.role as 'executive' | 'manager' | 'superadmin',
-      department: profile.department?.code,
-      departmentName: profile.department?.name,
+      department: dept?.code,
+      departmentName: dept?.name,
       avatar: profile.avatar_url || null,
     }
   } catch (error) {

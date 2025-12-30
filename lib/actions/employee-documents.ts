@@ -401,7 +401,7 @@ export async function uploadEmployeeDocument(
     revalidatePath(`/hr/employees/${input.employeeId}`)
 
     // Return formatted document
-    const { data: fullDocument } = await getEmployeeDocuments(input.employeeId)
+    const fullDocument = await getEmployeeDocuments(input.employeeId)
     const document = fullDocument.find((d) => d.id === newDocument.id)
     if (!document) {
       throw new Error('Failed to retrieve uploaded document')
@@ -501,7 +501,7 @@ export async function createEmployeeDocument(
       revalidatePath(`/hr/employees/${input.employeeId}`)
 
       // Return formatted document
-      const { data: fullDocument } = await getEmployeeDocuments(input.employeeId)
+      const fullDocument = await getEmployeeDocuments(input.employeeId)
       const document = fullDocument.find((d) => d.id === tempDoc.id)
       if (!document) {
         throw new Error('Failed to retrieve created document')
@@ -544,7 +544,7 @@ export async function createEmployeeDocument(
       revalidatePath(`/hr/employees/${input.employeeId}`)
 
       // Return formatted document
-      const { data: fullDocument } = await getEmployeeDocuments(input.employeeId)
+      const fullDocument = await getEmployeeDocuments(input.employeeId)
       const document = fullDocument.find((d) => d.id === newDocument.id)
       if (!document) {
         throw new Error('Failed to retrieve created document')
@@ -614,7 +614,7 @@ export async function updateDocumentStatus(
     revalidatePath(`/hr/employees/${employeeId}`)
 
     // Return formatted document
-    const { data: fullDocument } = await getEmployeeDocuments(employeeId)
+    const fullDocument = await getEmployeeDocuments(employeeId)
     const document = fullDocument.find((d) => d.id === input.documentId)
     if (!document) {
       throw new Error('Failed to retrieve updated document')

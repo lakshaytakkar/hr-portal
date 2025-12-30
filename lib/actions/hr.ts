@@ -60,15 +60,44 @@ function toHRUser(profile: { id: string; full_name: string | null; email: string
 /**
  * Get all active departments for dropdowns
  */
-export async function getDepartments() {
+export async function getDepartments(verticalIds?: string[]) {
+  'use server'
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('departments')
     .select('id, name, code')
     .is('deleted_at', null)
     .eq('is_active', true)
-    .order('name', { ascending: true })
+
+  // If verticalIds provided, filter departments through teams
+  if (verticalIds && verticalIds.length > 0) {
+    // Get unique department IDs from teams that belong to selected verticals
+    const { data: teams, error: teamsError } = await supabase
+      .from('teams')
+      .select('department_id')
+      .in('vertical_id', verticalIds)
+      .is('deleted_at', null)
+      .eq('is_active', true)
+
+    if (teamsError) {
+      console.warn('Error fetching teams for verticals:', teamsError)
+      // Fallback to all departments if teams query fails
+    } else if (teams && teams.length > 0) {
+      const departmentIds = [...new Set(teams.map((t: any) => t.department_id).filter(Boolean))]
+      if (departmentIds.length > 0) {
+        query = query.in('id', departmentIds)
+      } else {
+        // No teams found for selected verticals, return empty
+        return []
+      }
+    } else {
+      // No teams found, return empty
+      return []
+    }
+  }
+
+  const { data, error } = await query.order('name', { ascending: true })
 
   if (error) throw new Error(error.message)
   return data ?? []
@@ -319,6 +348,8 @@ export async function getEmployees(): Promise<FrontendEmployee[]> {
         name: primaryPos.team.vertical.name,
         code: primaryPos.team.vertical.code,
         description: null,
+        type: primaryPos.team.vertical.type ?? null,
+        organizationId: primaryPos.team.vertical.organization_id ?? null,
         isActive: true,
         createdAt: '',
         updatedAt: '',
@@ -503,6 +534,8 @@ export async function getEmployeeById(id: string): Promise<FrontendEmployee | nu
       name: primaryPos.team.vertical.name,
       code: primaryPos.team.vertical.code,
       description: null,
+      type: primaryPos.team.vertical.type ?? null,
+      organizationId: primaryPos.team.vertical.organization_id ?? null,
       isActive: true,
       createdAt: '',
       updatedAt: '',

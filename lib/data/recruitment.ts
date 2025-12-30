@@ -78,6 +78,7 @@ export const initialEvaluations: Evaluation[] = [
     overallScore: 8,
     feedback: "Excellent technical skills and team fit",
     recommendation: "hire",
+    evaluationRound: "level_1",
     evaluatedAt: "2024-01-20T00:00:00Z",
     createdAt: "2024-01-20T00:00:00Z",
     updatedAt: "2024-01-20T00:00:00Z",

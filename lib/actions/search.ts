@@ -130,14 +130,15 @@ export async function searchEmployees(query: string): Promise<SearchEmployeeResu
       .map((emp: any) => {
         const profile = profileMap.get(emp.profile_id)
         if (!profile) return null
-        
+        const dept = Array.isArray(profile.department) ? profile.department[0] : profile.department
+
         return {
           id: emp.id,
           name: profile.full_name || 'Unknown',
           email: profile.email || '',
           avatar: profile.avatar_url || null,
           employeeId: emp.employee_id || undefined,
-          department: profile.department?.name || undefined,
+          department: dept?.name || undefined,
         }
       })
       .filter(Boolean) as SearchEmployeeResult[]

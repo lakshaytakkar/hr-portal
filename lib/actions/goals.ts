@@ -275,22 +275,22 @@ export async function createGoal(input: CreateGoalInput): Promise<Goal> {
  */
 export async function updateGoal(id: string, input: UpdateGoalInput): Promise<Goal> {
   const supabase = await createClient()
-  
+
   try {
     const user = await getCurrentUser()
     const role = await getUserRole(user.id)
-    
+
     // Check access
     const { data: existingGoal } = await supabase
       .from('goals')
-      .select('user_id')
+      .select('user_id, completed_at, status')
       .eq('id', id)
       .single()
-    
+
     if (!existingGoal) {
       throw new Error('Goal not found')
     }
-    
+
     // Check permissions
     if (role === 'executive' && existingGoal.user_id !== user.id) {
       throw new Error('Only goal owner can update this goal')

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,7 +13,7 @@ import { signIn } from "@/lib/actions/auth"
 import { toast } from "sonner"
 import { useUser } from "@/lib/hooks/useUser"
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -230,5 +230,20 @@ export default function SignInPage() {
   )
 }
 
-
-
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full max-w-md">
+        <Card className="bg-white border-0 shadow-none rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-muted-foreground">Loading...</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
+  )
+}

@@ -28,7 +28,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   // Load from localStorage on mount, only if user is superadmin or CEO
   useEffect(() => {
-    if (user?.role === 'superadmin' || user?.role === 'ceo') {
+    if (user?.role === 'superadmin') {
       const stored = localStorage.getItem(ORGANIZATION_STORAGE_KEY)
       if (stored) {
         try {
@@ -46,7 +46,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   }, [user?.role])
 
   const setSelectedOrganizations = (organizations: string[]) => {
-    if (user?.role === 'superadmin' || user?.role === 'ceo') {
+    if (user?.role === 'superadmin') {
       setSelectedOrganizationsState(organizations)
       // Store in localStorage
       localStorage.setItem(ORGANIZATION_STORAGE_KEY, JSON.stringify(organizations))
@@ -54,7 +54,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   }
 
   const toggleOrganization = (organizationId: string) => {
-    if (user?.role === 'superadmin' || user?.role === 'ceo') {
+    if (user?.role === 'superadmin') {
       setSelectedOrganizationsState((prev) => {
         const newSelection = prev.includes(organizationId)
           ? prev.filter((id) => id !== organizationId)
@@ -66,7 +66,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   }
 
   // For non-superadmin/CEO, provide a dummy context that doesn't affect state
-  const contextValue = (user?.role === 'superadmin' || user?.role === 'ceo')
+  const contextValue = (user?.role === 'superadmin')
     ? { selectedOrganizations, setSelectedOrganizations, toggleOrganization }
     : { selectedOrganizations: [], setSelectedOrganizations: () => {}, toggleOrganization: () => {} }
 

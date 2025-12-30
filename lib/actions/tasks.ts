@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { resolveProfileId, normalizeOptional } from '@/lib/utils/foreign-keys'
 import { getUserFriendlyErrorMessage, logDatabaseError } from '@/lib/utils/errors'
-import type { Task, TaskStatus, TaskPriority } from '@/lib/types/task'
+import type { Task, TaskLevel0, TaskLevel1, TaskLevel2, TaskStatus, TaskPriority } from '@/lib/types/task'
 import { createNotification } from '@/lib/actions/notifications'
 
 // ============================================================================

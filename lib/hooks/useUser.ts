@@ -60,13 +60,14 @@ export function useUser(): { user: UserProfile | null; isLoading: boolean } {
           return
         }
 
+        const dept = Array.isArray(profile.department) ? profile.department[0] : profile.department
         setUser({
           id: profile.id,
           email: profile.email,
           name: profile.full_name || profile.email.split('@')[0],
           role: profile.role as 'executive' | 'manager' | 'superadmin',
-          department: profile.department?.code,
-          departmentName: profile.department?.name,
+          department: dept?.code,
+          departmentName: dept?.name,
           avatar: profile.avatar_url || null,
         })
       } catch (error) {
@@ -98,13 +99,14 @@ export function useUser(): { user: UserProfile | null; isLoading: boolean } {
           .single()
 
         if (!error && profile) {
+          const dept = Array.isArray(profile.department) ? profile.department[0] : profile.department
           setUser({
             id: profile.id,
             email: profile.email,
             name: profile.full_name || profile.email.split('@')[0],
             role: profile.role as 'executive' | 'manager' | 'superadmin',
-            department: profile.department?.code,
-            departmentName: profile.department?.name,
+            department: dept?.code,
+            departmentName: dept?.name,
             avatar: profile.avatar_url || null,
           })
         } else {

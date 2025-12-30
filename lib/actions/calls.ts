@@ -331,18 +331,18 @@ export async function createCall(input: CreateCallInput): Promise<Call> {
  */
 export async function updateCall(id: string, input: UpdateCallInput): Promise<Call> {
   const supabase = await createClient()
-  
+
   try {
     const user = await getCurrentUser()
     const role = await getUserRole(user.id)
-    
+
     // Check access
     const { data: existingCall } = await supabase
       .from('calls')
-      .select('assigned_to_id')
+      .select('assigned_to_id, contact_name, company, date, time, status, created_by')
       .eq('id', id)
       .single()
-    
+
     if (!existingCall) {
       throw new Error('Call not found')
     }

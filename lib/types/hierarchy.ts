@@ -111,6 +111,16 @@ export interface CreateOrganizationInput {
   name: string
   code?: string
   description?: string
+  country?: string
+  registrationNumber?: string
+  taxId?: string
+  address?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  phone?: string
+  email?: string
+  website?: string
 }
 
 export interface UpdateOrganizationInput {
@@ -118,6 +128,16 @@ export interface UpdateOrganizationInput {
   name?: string
   code?: string
   description?: string
+  country?: string
+  registrationNumber?: string
+  taxId?: string
+  address?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  phone?: string
+  email?: string
+  website?: string
   isActive?: boolean
 }
 

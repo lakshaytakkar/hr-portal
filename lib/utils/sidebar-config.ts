@@ -888,9 +888,9 @@ export function buildSidebarConfig(
     )
   }
 
-  // Filter items by selected organization, vertical, and department ONLY for superadmin/CEO
-  // If selections are undefined, it means user is not superadmin/CEO or filtering is disabled
-  const isFilteringEnabled = (user.isSuperadmin || user.role === 'ceo') && 
+  // Filter items by selected organization, vertical, and department ONLY for superadmin
+  // If selections are undefined, it means user is not superadmin or filtering is disabled
+  const isFilteringEnabled = user.isSuperadmin &&
     (selectedOrganizations !== undefined || selectedVerticals !== undefined || selectedDepartments !== undefined)
   
   if (isFilteringEnabled) {

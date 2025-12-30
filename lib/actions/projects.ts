@@ -201,11 +201,7 @@ export async function getProjects(): Promise<Project[]> {
       )
     }
     // Superadmin sees all (no filtering)
-    
-    if (error) {
-      throw new Error(`Failed to fetch projects: ${error.message}`)
-    }
-    
+
     // Get task counts for each project
     const projectIds = data.map(p => p.id)
     const taskCounts = new Map<string, { total: number; completed: number }>()
@@ -405,6 +401,7 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
     
     // Add owner as member if not in teamMemberIds
     if (!input.teamMemberIds?.includes(ownerId)) {
+      // Ignore duplicate errors - just attempt insert
       await supabase
         .from('project_members')
         .insert({
@@ -413,7 +410,6 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
           role: 'owner',
           created_by: user.id,
         })
-        .catch(() => {}) // Ignore duplicate errors
     }
     
     // Notify project owner
@@ -489,14 +485,14 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
     // Check access
     const { data: existingProject } = await supabase
       .from('projects')
-      .select('owner_id')
+      .select('owner_id, name, status')
       .eq('id', id)
       .single()
-    
+
     if (!existingProject) {
       throw new Error('Project not found')
     }
-    
+
     // Check permissions
     if (role === 'executive' && existingProject.owner_id !== user.id) {
       throw new Error('Only project owner can update this project')

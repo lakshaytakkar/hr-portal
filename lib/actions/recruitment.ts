@@ -363,6 +363,7 @@ export async function getCandidateWithRelations(id: string): Promise<CandidateWi
     overallScore: row.overall_score,
     feedback: row.feedback ?? '',
     recommendation: row.recommendation,
+    evaluationRound: row.evaluation_round ?? 'level_1',
     evaluatedAt: row.evaluated_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -514,6 +515,7 @@ export async function getApplicationWithRelations(id: string): Promise<Applicati
         overallScore: evalData.overall_score,
         feedback: evalData.feedback ?? '',
         recommendation: evalData.recommendation,
+        evaluationRound: evalData.evaluation_round ?? 'level_1',
         evaluatedAt: evalData.evaluated_at,
         createdAt: evalData.created_at,
         updatedAt: evalData.updated_at,
@@ -632,6 +634,7 @@ export async function getInterviewWithRelations(id: string): Promise<InterviewWi
         overallScore: evalData.overall_score,
         feedback: evalData.feedback ?? '',
         recommendation: evalData.recommendation,
+        evaluationRound: evalData.evaluation_round ?? 'level_1',
         evaluatedAt: evalData.evaluated_at,
         createdAt: evalData.created_at,
         updatedAt: evalData.updated_at,
@@ -2047,6 +2050,9 @@ export async function getEvaluationProgress(): Promise<{
     const evaluations = interview.evaluations || []
     const level1 = evaluations.find((e: any) => e.evaluation_round === 'level_1' || !e.evaluation_round)
     const level2 = evaluations.find((e: any) => e.evaluation_round === 'level_2')
+    const app = Array.isArray(interview.application) ? interview.application[0] : interview.application
+    const candidate = Array.isArray(app?.candidate) ? app?.candidate[0] : app?.candidate
+    const jobPosting = Array.isArray(app?.job_posting) ? app?.job_posting[0] : app?.job_posting
 
     let status: 'pending_level_1' | 'pending_level_2' | 'completed' | 'rejected' = 'pending_level_1'
 
@@ -2062,9 +2068,9 @@ export async function getEvaluationProgress(): Promise<{
       if (!e) return undefined
       return {
         id: e.id,
-        candidateName: interview.application?.candidate?.full_name ?? 'Unknown',
-        candidateEmail: interview.application?.candidate?.email ?? '',
-        position: interview.application?.job_posting?.title ?? 'Unknown Position',
+        candidateName: candidate?.full_name ?? 'Unknown',
+        candidateEmail: candidate?.email ?? '',
+        position: jobPosting?.title ?? 'Unknown Position',
         evaluatedBy: toRecruitmentUser(e.evaluated_by)!,
         technicalScore: e.technical_score,
         communicationScore: e.communication_score,
@@ -2087,10 +2093,10 @@ export async function getEvaluationProgress(): Promise<{
     }
 
     return {
-      candidateId: interview.application?.candidate?.id ?? '',
-      candidateName: interview.application?.candidate?.full_name ?? 'Unknown',
-      candidateEmail: interview.application?.candidate?.email ?? '',
-      position: interview.application?.job_posting?.title ?? 'Unknown Position',
+      candidateId: candidate?.id ?? '',
+      candidateName: candidate?.full_name ?? 'Unknown',
+      candidateEmail: candidate?.email ?? '',
+      position: jobPosting?.title ?? 'Unknown Position',
       interviewId: interview.id,
       level1: mapEval(level1),
       level2: mapEval(level2),
@@ -3329,7 +3335,7 @@ export async function getJobListings(): Promise<FrontendJobListing[]> {
         created_at,
         updated_at
       ),
-      posted_by:profiles(id, full_name, email, avatar_url)
+      posted_by:profiles!job_listings_created_by_fkey(id, full_name, email, avatar_url)
     `)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
