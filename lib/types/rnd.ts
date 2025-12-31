@@ -11,6 +11,7 @@ export interface ResearchDoc {
   id: string
   title: string
   description?: string
+  content?: string
   category: string
   status: DocumentStatus
   fileUrl?: string
@@ -24,6 +25,7 @@ export interface Mindmap {
   id: string
   title: string
   description?: string
+  content?: string
   category: string
   fileUrl?: string
   createdAt: string
@@ -35,6 +37,7 @@ export interface FinancialPlanning {
   id: string
   title: string
   description?: string
+  content?: string
   vertical: string
   budget: number
   status: DocumentStatus
@@ -48,6 +51,7 @@ export interface NewVertical {
   id: string
   title: string
   description?: string
+  content?: string
   marketSize?: number
   status: DocumentStatus
   fileUrl?: string
@@ -72,6 +76,7 @@ export interface StrategicPlanning {
   id: string
   title: string
   description?: string
+  content?: string
   initiative: string
   status: DocumentStatus
   fileUrl?: string
@@ -84,6 +89,7 @@ export interface MarketResearch {
   id: string
   title: string
   description?: string
+  content?: string
   market: string
   status: DocumentStatus
   fileUrl?: string
